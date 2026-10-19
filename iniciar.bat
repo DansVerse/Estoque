@@ -2,48 +2,56 @@
 title Servidor StockFlow Pro - RT Esquadrias
 chcp 65001 > nul
 echo ====================================================
-echo VERIFICANDO E CONFIGURANDO AMBIENTE STOCKFLOW PRO
+echo 🚀 CONFIGURANDO E INICIANDO STOCKFLOW PRO (GITHUB)
 echo ====================================================
 
-rem 1. Verificar se o Node.js esta instalado no Windows
+rem 1. Verificar se o Node.js esta instalado no sistema
 where node >nul 2>nul
 if errorlevel 1 (
-    echo Node.js nao foi encontrado neste computador!
-    echo Baixando o instalador do Node.js automaticamente...
+    echo ⚠️ Node.js nao encontrado neste computador!
+    echo 📥 Baixando instalador oficial do Node.js (LTS)...
     powershell -Command "Invoke-WebRequest -Uri 'https://nodejs.org/dist/v20.12.2/node-v20.12.2-x64.msi' -OutFile '%temp%\node_installer.msi'"
-    echo Instalando o Node.js em segundo plano...
+    echo ⚙️ Instalando o Node.js em segundo plano (aguarde)...
     msiexec /i "%temp%\node_installer.msi" /passive /norestart
-    echo Node.js instalado com sucesso!
+    echo ✅ Node.js instalado! Atualizando variaveis de ambiente...
     set "PATH=%ProgramFiles%\nodejs\;%PATH%"
     set "PATH=%AppData%\npm;%PATH%"
 )
 
-rem 2. Verificar e Criar Ambiente Virtual Python
+rem 2. Verificar se o Python esta instalado
+where python >nul 2>nul
+if errorlevel 1 (
+    echo ❌ ERRO: Python nao encontrado! Instale o Python antes de continuar.
+    pause
+    exit /b
+)
+
+rem 3. Criar Ambiente Virtual Python (.venv)
 if not exist ".venv" (
-    echo Criando ambiente virtual Python...
+    echo 📦 Criando ambiente virtual Python (.venv)...
     python -m venv .venv
     if errorlevel 1 (
-        echo Erro ao criar .venv. Verifique se o Python esta instalado.
+        echo ❌ Erro ao criar .venv. Verifique a instalacao do Python.
         pause
         exit /b
     )
 )
 
-rem 3. Instalar Bibliotecas do Python no .venv
-echo Verificando dependencias do Python...
+rem 4. Instalar Dependencias do Python no .venv
+echo 🐍 Verificando e instalando bibliotecas Python (openpyxl, pandas)...
 ".venv\Scripts\python.exe" -m pip install --upgrade pip > nul
 ".venv\Scripts\pip.exe" install openpyxl pandas > nul
 
-rem 4. Instalar Dependencias do Node.js
+rem 5. Instalar Dependencias do Node.js
 if not exist "node_modules" (
-    echo Pasta node_modules nao encontrada. Instalando dependencias Node.js...
+    echo 📦 Instalando pacotes do Node.js (Express, Socket.IO, Multer, Cors)...
     call npm install
 ) else (
-    echo Verificando dependencias Node.js...
+    echo 📦 Verificando atualizacoes dos pacotes do Node.js...
     call npm install
 )
 
-rem 5. Garantir que as pastas locais existam
+rem 6. Garantir que as pastas locais necessarias existam
 if not exist "Estoques" (
     mkdir Estoques
 )
@@ -53,10 +61,11 @@ if not exist "uploads" (
 
 echo.
 echo ====================================================
-echo AMBIENTE PRONTO! INICIANDO SERVIDOR...
+echo ✅ AMBIENTE CONFIGURADO COM SUCESSO!
+echo 🚀 INICIANDO SERVIDOR EM http://localhost:3000
 echo ====================================================
 echo.
 
-rem 6. Iniciar o Servidor Node.js
+rem 7. Iniciar o Servidor Node.js
 node server.js
 pause

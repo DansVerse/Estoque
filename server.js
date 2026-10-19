@@ -34,11 +34,16 @@ function executarBackupDiario() {
 
       if (!fs.existsSync(caminhoBackup)) {
         fs.copyFileSync(BANCO_JSON, caminhoBackup);
-        console.log(`[BACKUP AUTOMÁTICO] Cópias de segurança criada com sucesso: ${nomeBackupDiario}`);
+        console.log(
+          `[BACKUP AUTOMÁTICO] Cópias de segurança criada com sucesso: ${nomeBackupDiario}`,
+        );
       }
     }
   } catch (err) {
-    console.error("[BACKUP AUTOMÁTICO] Erro ao gerar cópias de segurança diária:", err);
+    console.error(
+      "[BACKUP AUTOMÁTICO] Erro ao gerar cópias de segurança diária:",
+      err,
+    );
   }
 }
 
@@ -57,7 +62,7 @@ function lerBanco() {
     fs.writeFileSync(
       BANCO_JSON,
       JSON.stringify(estruturaInicial, null, 2),
-      "utf-8"
+      "utf-8",
     );
     return estruturaInicial;
   }
@@ -92,7 +97,7 @@ function calcularSaldos(banco) {
   (banco.movimentacoes || []).forEach((m) => {
     const cod = (m.codigo || "").toUpperCase().trim();
     if (!totais[cod]) totais[cod] = { entradas: 0, saidas: 0 };
-    
+
     const tipoStr = (m.tipo || "")
       .toLowerCase()
       .normalize("NFD")
@@ -113,7 +118,7 @@ function chamarPython(script, payload) {
     const pythonVenv = path.join(
       __dirname,
       ".venv",
-      isWindows ? "Scripts/python.exe" : "bin/python"
+      isWindows ? "Scripts/python.exe" : "bin/python",
     );
     const pythonExec = fs.existsSync(pythonVenv)
       ? pythonVenv
@@ -189,14 +194,15 @@ app.post("/api/estoque/movimentar", (req, res) => {
   }
 
   if (isNaN(quantidade) || quantidade <= 0) {
-    return res
-      .status(400)
-      .json({ success: false, error: "Informe uma quantidade maior que zero." });
+    return res.status(400).json({
+      success: false,
+      error: "Informe uma quantidade maior que zero.",
+    });
   }
 
   const codUpper = codigo.toUpperCase().trim();
   const produto = banco.cadastros.find(
-    (c) => c.codigo.toUpperCase().trim() === codUpper
+    (c) => c.codigo.toUpperCase().trim() === codUpper,
   );
 
   if (!produto) {
@@ -220,19 +226,19 @@ app.post("/api/estoque/movimentar", (req, res) => {
   if (isSaida && quantidade > saldoAtual) {
     return res.status(400).json({
       success: false,
-      error: `BLOQUEADO: Estoque insuficiente de "${produto.descricao}" (${produto.codigo}). Saldo disponível: ${saldoAtual.toFixed(2)} | Solicitado: ${quantidade.toFixed(2)}.`
+      error: `BLOQUEADO: Estoque insuficiente de "${produto.descricao}" (${produto.codigo}). Saldo disponível: ${saldoAtual.toFixed(2)} | Solicitado: ${quantidade.toFixed(2)}.`,
     });
   }
 
   if (isEntrada && produto.codigo.startsWith("PA-")) {
     const insumosBOM = (banco.estruturaBOM || []).filter(
-      (b) => b.codigoPA.toUpperCase().trim() === codUpper
+      (b) => b.codigoPA.toUpperCase().trim() === codUpper,
     );
 
     for (const bom of insumosBOM) {
       const codMP = bom.codigoMP.toUpperCase().trim();
       const mpInfo = banco.cadastros.find(
-        (c) => c.codigo.toUpperCase().trim() === codMP
+        (c) => c.codigo.toUpperCase().trim() === codMP,
       );
       const mpMov = totaisAtuais[codMP] || { entradas: 0, saidas: 0 };
       const saldoMP = mpMov.entradas - mpMov.saidas;
@@ -241,7 +247,7 @@ app.post("/api/estoque/movimentar", (req, res) => {
       if (qtdNecessaria > saldoMP) {
         return res.status(400).json({
           success: false,
-          error: `PRODUÇÃO BLOQUEADA: Matéria-prima insuficiente (${bom.codigoMP} - ${bom.materiaPrima}). Necessário: ${qtdNecessaria.toFixed(2)} | Disponível: ${saldoMP.toFixed(2)}.`
+          error: `PRODUÇÃO BLOQUEADA: Matéria-prima insuficiente (${bom.codigoMP} - ${bom.materiaPrima}). Necessário: ${qtdNecessaria.toFixed(2)} | Disponível: ${saldoMP.toFixed(2)}.`,
         });
       }
     }
@@ -263,12 +269,12 @@ app.post("/api/estoque/movimentar", (req, res) => {
 
   if (isEntrada && produto.codigo.startsWith("PA-")) {
     const insumosBOM = (banco.estruturaBOM || []).filter(
-      (b) => b.codigoPA.toUpperCase().trim() === codUpper
+      (b) => b.codigoPA.toUpperCase().trim() === codUpper,
     );
     insumosBOM.forEach((bom) => {
       const codMP = bom.codigoMP.toUpperCase().trim();
       const mp = banco.cadastros.find(
-        (c) => c.codigo.toUpperCase().trim() === codMP
+        (c) => c.codigo.toUpperCase().trim() === codMP,
       );
       const qtdBaixa = quantidade * Number(bom.qtdConsumida || 1);
       banco.movimentacoes.push({
@@ -288,7 +294,7 @@ app.post("/api/estoque/movimentar", (req, res) => {
   registrarLog(
     banco,
     "Movimentação Web",
-    `${tipo} de ${quantidade} no item ${produto.codigo}`
+    `${tipo} de ${quantidade} no item ${produto.codigo}`,
   );
 
   salvarBanco(banco);
@@ -310,7 +316,7 @@ app.post("/api/estoque/cadastrar-produto", (req, res) => {
 
   const codUpper = codigo.toUpperCase().trim();
   const idx = banco.cadastros.findIndex(
-    (c) => c.codigo.toUpperCase() === codUpper
+    (c) => c.codigo.toUpperCase() === codUpper,
   );
 
   const itemData = {
@@ -328,7 +334,7 @@ app.post("/api/estoque/cadastrar-produto", (req, res) => {
     registrarLog(
       banco,
       "Edição de Produto",
-      `Produto ${itemData.codigo} atualizado.`
+      `Produto ${itemData.codigo} atualizado.`,
     );
   } else {
     banco.cadastros.push(itemData);
@@ -346,7 +352,7 @@ app.delete("/api/estoque/excluir-produto/:codigo", (req, res) => {
   const codigo = req.params.codigo.toUpperCase().trim();
 
   const idx = banco.cadastros.findIndex(
-    (c) => c.codigo.toUpperCase().trim() === codigo
+    (c) => c.codigo.toUpperCase().trim() === codigo,
   );
   if (idx === -1) {
     return res
@@ -360,7 +366,7 @@ app.delete("/api/estoque/excluir-produto/:codigo", (req, res) => {
     banco.estruturaBOM = banco.estruturaBOM.filter(
       (b) =>
         b.codigoPA.toUpperCase().trim() !== codigo &&
-        b.codigoMP.toUpperCase().trim() !== codigo
+        b.codigoMP.toUpperCase().trim() !== codigo,
     );
   }
 
@@ -390,7 +396,7 @@ app.post("/api/estoque/ajustar", (req, res) => {
 
   const codUpper = codigo.toUpperCase().trim();
   const produto = banco.cadastros.find(
-    (c) => c.codigo.toUpperCase().trim() === codUpper
+    (c) => c.codigo.toUpperCase().trim() === codUpper,
   );
 
   if (!produto) {
@@ -431,7 +437,7 @@ app.post("/api/estoque/ajustar", (req, res) => {
   registrarLog(
     banco,
     "Ajuste de Inventário",
-    `Ajuste no item ${produto.codigo}: saldo alterado de ${saldoAtual.toFixed(2)} para ${qtdContada.toFixed(2)}. Motivo: ${motivo}`
+    `Ajuste no item ${produto.codigo}: saldo alterado de ${saldoAtual.toFixed(2)} para ${qtdContada.toFixed(2)}. Motivo: ${motivo}`,
   );
 
   salvarBanco(banco);
@@ -450,10 +456,12 @@ app.post("/api/estoque/cadastrar-bom", (req, res) => {
   const { codigoPA, codigoMP, qtdConsumida } = req.body;
 
   const pa = banco.cadastros.find(
-    (c) => c.codigo.toUpperCase().trim() === (codigoPA || "").toUpperCase().trim()
+    (c) =>
+      c.codigo.toUpperCase().trim() === (codigoPA || "").toUpperCase().trim(),
   );
   const mp = banco.cadastros.find(
-    (c) => c.codigo.toUpperCase().trim() === (codigoMP || "").toUpperCase().trim()
+    (c) =>
+      c.codigo.toUpperCase().trim() === (codigoMP || "").toUpperCase().trim(),
   );
 
   if (!pa || !mp) {
@@ -470,7 +478,7 @@ app.post("/api/estoque/cadastrar-bom", (req, res) => {
       !(
         b.codigoPA.toUpperCase().trim() === pa.codigo.toUpperCase().trim() &&
         b.codigoMP.toUpperCase().trim() === mp.codigo.toUpperCase().trim()
-      )
+      ),
   );
 
   banco.estruturaBOM.push({
@@ -485,7 +493,7 @@ app.post("/api/estoque/cadastrar-bom", (req, res) => {
   registrarLog(
     banco,
     "Estrutura BOM",
-    `Vínculo de ${qtdConsumida} ${mp.unidade} de ${mp.codigo} para o item ${pa.codigo}`
+    `Vínculo de ${qtdConsumida} ${mp.unidade} de ${mp.codigo} para o item ${pa.codigo}`,
   );
 
   salvarBanco(banco);
@@ -518,12 +526,12 @@ app.post("/api/estoque/gerar-relatorio-contador", async (req, res) => {
 
   if (resPython.success && resPython.arquivo) {
     const caminhoFicheiro = path.join(PASTA_ESTOQUES, resPython.arquivo);
+    res.setHeader("Content-Type", "application/pdf");
     return res.download(caminhoFicheiro, resPython.arquivo);
   }
 
   res.status(500).json(resPython);
 });
-
 // 8. Exportar Backup da Base em JSON
 app.get("/api/estoque/exportar-json", (req, res) => {
   const banco = lerBanco();
@@ -531,45 +539,59 @@ app.get("/api/estoque/exportar-json", (req, res) => {
   const nomeFicheiro = `Backup_Banco_Estoque_${dataFormatada}.json`;
 
   res.setHeader("Content-Type", "application/json");
-  res.setHeader("Content-Disposition", `attachment; filename="${nomeFicheiro}"`);
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${nomeFicheiro}"`,
+  );
   res.send(JSON.stringify(banco, null, 2));
 });
 
 // 9. Importar / Restaurar Backup JSON
-app.post("/api/estoque/importar-json", upload.single("arquivoBackup"), (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, error: "Nenhum arquivo enviado." });
-    }
+app.post(
+  "/api/estoque/importar-json",
+  upload.single("arquivoBackup"),
+  (req, res) => {
+    try {
+      if (!req.file) {
+        return res
+          .status(400)
+          .json({ success: false, error: "Nenhum arquivo enviado." });
+      }
 
-    const conteudoRaw = fs.readFileSync(req.file.path, "utf-8");
-    const novoBanco = JSON.parse(conteudoRaw);
+      const conteudoRaw = fs.readFileSync(req.file.path, "utf-8");
+      const novoBanco = JSON.parse(conteudoRaw);
 
-    // Validação da estrutura mínima do banco JSON
-    if (!novoBanco.cadastros || !novoBanco.movimentacoes) {
+      // Validação da estrutura mínima do banco JSON
+      if (!novoBanco.cadastros || !novoBanco.movimentacoes) {
+        fs.unlinkSync(req.file.path);
+        return res.status(400).json({
+          success: false,
+          error:
+            "Formato inválido. O arquivo JSON deve conter as tabelas de cadastros e movimentações.",
+        });
+      }
+
+      registrarLog(
+        novoBanco,
+        "Restauração de Backup",
+        `Base de dados restaurada via arquivo importado (${req.file.originalname}).`,
+      );
+
+      salvarBanco(novoBanco);
       fs.unlinkSync(req.file.path);
-      return res.status(400).json({
+
+      io.emit("atualizacao_estoque", { success: true });
+      res.json({ success: true, message: "Backup restaurado com sucesso!" });
+    } catch (err) {
+      if (req.file && fs.existsSync(req.file.path))
+        fs.unlinkSync(req.file.path);
+      res.status(500).json({
         success: false,
-        error: "Formato inválido. O arquivo JSON deve conter as tabelas de cadastros e movimentações."
+        error: "Erro ao importar backup JSON: " + err.message,
       });
     }
-
-    registrarLog(
-      novoBanco,
-      "Restauração de Backup",
-      `Base de dados restaurada via arquivo importado (${req.file.originalname}).`
-    );
-
-    salvarBanco(novoBanco);
-    fs.unlinkSync(req.file.path);
-
-    io.emit("atualizacao_estoque", { success: true });
-    res.json({ success: true, message: "Backup restaurado com sucesso!" });
-  } catch (err) {
-    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-    res.status(500).json({ success: false, error: "Erro ao importar backup JSON: " + err.message });
-  }
-});
+  },
+);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {

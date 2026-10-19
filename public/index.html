@@ -1,0 +1,1023 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StockFlow Pro - RT Esquadrias</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  </head>
+  <body class="bg-slate-100 font-sans text-slate-800">
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-50">
+      <div
+        class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center flex-wrap gap-3"
+      >
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-boxes-stacked text-emerald-400 text-2xl"></i>
+          <h1 class="text-xl font-bold">
+            StockFlow Pro
+            <span class="text-xs font-normal text-slate-400"
+              >| RT Esquadrias</span
+            >
+          </h1>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+          <button
+            onclick="gerarRelatorioContador()"
+            class="bg-blue-600 hover:bg-blue-500 text-white font-medium px-3 py-2 rounded-lg text-sm shadow transition flex items-center gap-2"
+          >
+            <i class="fa-solid fa-file-invoice-dollar"></i>
+            <span>Relatório Contábil</span>
+          </button>
+          <button
+            onclick="gerarBackupExcel()"
+            class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-3 py-2 rounded-lg text-sm shadow transition flex items-center gap-2"
+          >
+            <i class="fa-solid fa-file-excel"></i>
+            <span>Backup Excel</span>
+          </button>
+          <button
+            onclick="exportarBackupJSON()"
+            class="bg-slate-700 hover:bg-slate-600 text-white font-medium px-3 py-2 rounded-lg text-sm shadow transition flex items-center gap-2"
+            title="Descarregar cópia de segurança em JSON"
+          >
+            <i class="fa-solid fa-download"></i>
+            <span>Exportar JSON</span>
+          </button>
+          <button
+            onclick="document.getElementById('input-importar-json').click()"
+            class="bg-amber-600 hover:bg-amber-500 text-white font-medium px-3 py-2 rounded-lg text-sm shadow transition flex items-center gap-2"
+            title="Restaurar base de dados através de um ficheiro JSON"
+          >
+            <i class="fa-solid fa-upload"></i>
+            <span>Restaurar JSON</span>
+          </button>
+          <input
+            type="file"
+            id="input-importar-json"
+            accept=".json"
+            class="hidden"
+            onchange="importarBackupJSON(event)"
+          />
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+      <!-- CARDS -->
+      <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div
+          class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between"
+        >
+          <div>
+            <p class="text-xs font-semibold uppercase text-slate-400">
+              Itens Cadastrados
+            </p>
+            <h3 id="card-itens" class="text-2xl font-bold text-slate-800 mt-1">
+              0
+            </h3>
+          </div>
+          <div class="p-3 bg-blue-50 text-blue-600 rounded-lg">
+            <i class="fa-solid fa-list-check text-2xl"></i>
+          </div>
+        </div>
+
+        <div
+          class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between"
+        >
+          <div>
+            <p class="text-xs font-semibold uppercase text-slate-400">
+              Valor em Estoque
+            </p>
+            <h3
+              id="card-valor-total"
+              class="text-2xl font-bold text-slate-800 mt-1"
+            >
+              R$ 0,00
+            </h3>
+          </div>
+          <div class="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
+            <i class="fa-solid fa-sack-dollar text-2xl"></i>
+          </div>
+        </div>
+
+        <div
+          class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between"
+        >
+          <div>
+            <p class="text-xs font-semibold uppercase text-slate-400">
+              Itens em Alerta
+            </p>
+            <h3
+              id="card-criticos"
+              class="text-2xl font-bold text-rose-600 mt-1"
+            >
+              0
+            </h3>
+          </div>
+          <div class="p-3 bg-rose-50 text-rose-600 rounded-lg">
+            <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
+          </div>
+        </div>
+      </section>
+
+      <!-- NAVEGAÇÃO ENTRE ABAS -->
+      <div
+        class="border-b border-slate-200 flex gap-4 text-sm font-medium overflow-x-auto"
+      >
+        <button
+          onclick="mudarAba('lancamento')"
+          id="tab-lancamento"
+          class="pb-3 border-b-2 border-emerald-600 text-emerald-600 font-bold"
+        >
+          Lançamento Rápido
+        </button>
+        <button
+          onclick="mudarAba('painel')"
+          id="tab-painel"
+          class="pb-3 border-b-2 border-transparent text-slate-500"
+        >
+          Painel de Estoque
+        </button>
+        <button
+          onclick="mudarAba('cadastros')"
+          id="tab-cadastros"
+          class="pb-3 border-b-2 border-transparent text-slate-500"
+        >
+          Gestão de Produtos
+        </button>
+        <button
+          onclick="mudarAba('bom')"
+          id="tab-bom"
+          class="pb-3 border-b-2 border-transparent text-slate-500"
+        >
+          Estrutura BOM
+        </button>
+        <button
+          onclick="mudarAba('auditoria')"
+          id="tab-auditoria"
+          class="pb-3 border-b-2 border-transparent text-slate-500"
+        >
+          Auditoria & Logs
+        </button>
+      </div>
+
+      <!-- ABA 1: LANÇAMENTO RÁPIDO -->
+      <section
+        id="sec-lancamento"
+        class="bg-white p-6 rounded-xl shadow-sm border border-slate-200"
+      >
+        <h2 class="text-lg font-bold mb-4 text-emerald-700">
+          Registrar Entrada ou Saída
+        </h2>
+        <form
+          onsubmit="salvarMovimentacao(event)"
+          class="grid grid-cols-1 md:grid-cols-3 gap-4"
+        >
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1"
+              >Operação</label
+            >
+            <select
+              id="mov-tipo"
+              class="w-full bg-slate-50 border p-2 rounded-lg text-sm"
+            >
+              <option value="Entrada/Retorno">Entrada/Retorno</option>
+              <option value="Saída">Saída</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1"
+              >Produto</label
+            >
+            <select
+              id="mov-codigo"
+              class="w-full bg-slate-50 border p-2 rounded-lg text-sm"
+            >
+              <option value="">Selecione...</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1"
+              >Quantidade (KG / UN)</label
+            >
+            <input
+              type="number"
+              step="0.01"
+              id="mov-qtd"
+              required
+              class="w-full bg-slate-50 border p-2 rounded-lg text-sm"
+            />
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-xs font-semibold text-slate-600 mb-1"
+              >Observação / Ordem Produção</label
+            >
+            <input
+              type="text"
+              id="mov-obs"
+              class="w-full bg-slate-50 border p-2 rounded-lg text-sm"
+            />
+          </div>
+          <div class="flex items-end">
+            <button
+              type="submit"
+              class="w-full bg-slate-900 text-white font-bold py-2 rounded-lg text-sm"
+            >
+              Salvar Lançamento
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- ABA 2: PAINEL DE ESTOQUE -->
+      <section
+        id="sec-painel"
+        class="hidden bg-white p-6 rounded-xl shadow-sm border border-slate-200"
+      >
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+          <h2 class="text-lg font-bold">Saldos Atuais</h2>
+          <button
+            onclick="abrirModalAjuste()"
+            class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-3 py-2 rounded-lg text-sm shadow transition flex items-center gap-2"
+          >
+            <i class="fa-solid fa-clipboard-check"></i>
+            <span>Realizar Ajuste de Inventário</span>
+          </button>
+        </div>
+
+        <!-- BARRA DE PESQUISA E FILTROS -->
+        <div
+          class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4 bg-slate-50 p-3 rounded-lg border border-slate-200"
+        >
+          <div class="md:col-span-2 relative">
+            <i
+              class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400"
+            ></i>
+            <input
+              type="text"
+              id="busca-painel"
+              oninput="renderizar()"
+              placeholder="Buscar por código ou descrição do produto..."
+              class="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+          <div>
+            <select
+              id="filtro-status-painel"
+              onchange="renderizar()"
+              class="w-full py-2 px-3 bg-white border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              <option value="TODOS">Todos os Itens</option>
+              <option value="ALERTA">Apenas em Alerta (Repor)</option>
+              <option value="OK">Apenas Saldo OK</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-100">
+              <tr>
+                <th class="p-2">Código</th>
+                <th class="p-2">Descrição</th>
+                <th class="p-2">Entradas</th>
+                <th class="p-2">Saídas</th>
+                <th class="p-2">Saldo</th>
+                <th class="p-2">Min.</th>
+                <th class="p-2">Total (R$)</th>
+                <th class="p-2">Status</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-painel" class="divide-y"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ABA 3: GESTÃO DE PRODUTOS -->
+      <section
+        id="sec-cadastros"
+        class="hidden bg-white p-6 rounded-xl shadow-sm border border-slate-200"
+      >
+        <h2 class="text-lg font-bold mb-4 text-blue-700">
+          Cadastrar ou Editar Produto
+        </h2>
+        <form
+          onsubmit="salvarProduto(event)"
+          class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6"
+        >
+          <div>
+            <label class="text-xs font-semibold"
+              >Código (ex: MP-001 ou PA-001)</label
+            ><input
+              type="text"
+              id="cad-codigo"
+              required
+              class="w-full border p-2 rounded-lg text-sm"
+            />
+          </div>
+          <div>
+            <label class="text-xs font-semibold">Descrição</label
+            ><input
+              type="text"
+              id="cad-desc"
+              required
+              class="w-full border p-2 rounded-lg text-sm"
+            />
+          </div>
+          <div>
+            <label class="text-xs font-semibold">NCM</label
+            ><input
+              type="text"
+              id="cad-ncm"
+              class="w-full border p-2 rounded-lg text-sm"
+            />
+          </div>
+          <div>
+            <label class="text-xs font-semibold">Categoria</label
+            ><select id="cad-cat" class="w-full border p-2 rounded-lg text-sm">
+              <option value="Matéria-Prima">Matéria-Prima</option>
+              <option value="Produto Acabado">Produto Acabado</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-semibold">Unidade</label
+            ><select id="cad-und" class="w-full border p-2 rounded-lg text-sm">
+              <option value="KG">KG</option>
+              <option value="UN">UN</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-semibold">Estoque Mínimo</label
+            ><input
+              type="number"
+              step="0.01"
+              id="cad-min"
+              class="w-full border p-2 rounded-lg text-sm"
+            />
+          </div>
+          <div>
+            <label class="text-xs font-semibold">Custo Unitário (R$)</label
+            ><input
+              type="number"
+              step="0.01"
+              id="cad-custo"
+              class="w-full border p-2 rounded-lg text-sm"
+            />
+          </div>
+          <div class="md:col-span-2 flex items-end">
+            <button
+              type="submit"
+              class="w-full bg-blue-600 text-white font-bold py-2 rounded-lg text-sm"
+            >
+              Salvar Produto
+            </button>
+          </div>
+        </form>
+
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-2">
+          <h3 class="font-bold">Produtos Cadastrados</h3>
+          <div class="w-full md:w-72 relative">
+            <i
+              class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"
+            ></i>
+            <input
+              type="text"
+              id="busca-cadastros"
+              oninput="renderizar()"
+              placeholder="Filtrar cadastro..."
+              class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-100">
+              <tr>
+                <th class="p-2">Código</th>
+                <th class="p-2">Descrição</th>
+                <th class="p-2">Categoria</th>
+                <th class="p-2">Unidade</th>
+                <th class="p-2">Custo (R$)</th>
+                <th class="p-2 text-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-cadastros" class="divide-y"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ABA 4: ESTRUTURA BOM -->
+      <section
+        id="sec-bom"
+        class="hidden bg-white p-6 rounded-xl shadow-sm border border-slate-200"
+      >
+        <h2 class="text-lg font-bold mb-4 text-purple-700">
+          Receita de Fabricação (BOM)
+        </h2>
+        <form
+          onsubmit="salvarBOM(event)"
+          class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6"
+        >
+          <div>
+            <label class="text-xs font-semibold">Produto Acabado (PA)</label
+            ><select
+              id="bom-pa"
+              class="w-full border p-2 rounded-lg text-sm"
+            ></select>
+          </div>
+          <div>
+            <label class="text-xs font-semibold"
+              >Matéria-Prima Necessária (MP)</label
+            ><select
+              id="bom-mp"
+              class="w-full border p-2 rounded-lg text-sm"
+            ></select>
+          </div>
+          <div>
+            <label class="text-xs font-semibold"
+              >Qtd Consumida p/ Fabricar 1 UN</label
+            ><input
+              type="number"
+              step="0.01"
+              id="bom-qtd"
+              required
+              class="w-full border p-2 rounded-lg text-sm"
+            />
+          </div>
+          <div class="md:col-span-3">
+            <button
+              type="submit"
+              class="w-full bg-purple-700 text-white font-bold py-2 rounded-lg text-sm"
+            >
+              Vincular Insumo ao Produto
+            </button>
+          </div>
+        </form>
+        <h3 class="font-bold mb-2">Fichas Técnicas Ativas</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-100">
+              <tr>
+                <th class="p-2">Produto Acabado</th>
+                <th class="p-2">Insumo / Matéria-Prima</th>
+                <th class="p-2">Consumo por UN</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-bom" class="divide-y"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ABA 5: AUDITORIA -->
+      <section
+        id="sec-auditoria"
+        class="hidden bg-white p-6 rounded-xl shadow-sm border border-slate-200"
+      >
+        <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+          <h2 class="text-lg font-bold text-slate-700">
+            Histórico de Alterações e Operações
+          </h2>
+          <div class="w-full md:w-72 relative">
+            <i
+              class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"
+            ></i>
+            <input
+              type="text"
+              id="busca-auditoria"
+              oninput="renderizar()"
+              placeholder="Buscar em logs..."
+              class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-slate-500"
+            />
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-100">
+              <tr>
+                <th class="p-2">Data/Hora</th>
+                <th class="p-2">Ação</th>
+                <th class="p-2">Detalhes</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-auditoria" class="divide-y"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <!-- Modal de Ajuste Manual -->
+    <div
+      id="modal-ajuste"
+      class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    >
+      <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
+        <div class="flex justify-between items-center border-b pb-3">
+          <h3 class="text-lg font-bold text-indigo-700 flex items-center gap-2">
+            <i class="fa-solid fa-sliders"></i> Ajuste de Inventário
+          </h3>
+          <button
+            onclick="fecharModalAjuste()"
+            class="text-slate-400 hover:text-slate-600"
+          >
+            <i class="fa-solid fa-xmark text-xl"></i>
+          </button>
+        </div>
+
+        <form onsubmit="salvarAjuste(event)" class="space-y-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1"
+              >Selecione o Produto</label
+            >
+            <select
+              id="ajuste-codigo"
+              required
+              class="w-full bg-slate-50 border p-2 rounded-lg text-sm"
+              onchange="atualizarInfoAjuste()"
+            >
+              <option value="">Selecione...</option>
+            </select>
+          </div>
+
+          <div class="bg-slate-50 p-3 rounded-lg text-xs space-y-1">
+            <p class="text-slate-500">
+              Saldo Atual no Sistema:
+              <span id="ajuste-saldo-sistema" class="font-bold text-slate-800"
+                >0.00</span
+              >
+            </p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1"
+              >Quantidade Física Contada no Galpão</label
+            >
+            <input
+              type="number"
+              step="0.01"
+              id="ajuste-qtd-fisica"
+              required
+              class="w-full bg-slate-50 border p-2 rounded-lg text-sm"
+              placeholder="Ex: 50.00"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1"
+              >Motivo / Justificativa do Ajuste</label
+            >
+            <input
+              type="text"
+              id="ajuste-motivo"
+              required
+              class="w-full bg-slate-50 border p-2 rounded-lg text-sm"
+              placeholder="Ex: Contagem física quinzenal / Perda de material"
+            />
+          </div>
+
+          <div class="flex gap-2 pt-2">
+            <button
+              type="button"
+              onclick="fecharModalAjuste()"
+              class="w-1/2 bg-slate-200 text-slate-700 font-bold py-2 rounded-lg text-sm"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="w-1/2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-lg text-sm"
+            >
+              Confirmar Ajuste
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      let estadoGlobal = {
+        cadastros: [],
+        movimentacoes: [],
+        painelEstoque: [],
+        estruturaBOM: [],
+        logAuditoria: [],
+      };
+      const socket = typeof io !== "undefined" ? io() : null;
+
+      document.addEventListener("DOMContentLoaded", () => {
+        carregarDados();
+        if (socket) socket.on("atualizacao_estoque", () => carregarDados());
+      });
+
+      async function carregarDados() {
+        const res = await fetch("/api/estoque/completo");
+        estadoGlobal = await res.json();
+        renderizar();
+      }
+
+      function renderizar() {
+        const selMov = document.getElementById("mov-codigo");
+        const selPA = document.getElementById("bom-pa");
+        const selMP = document.getElementById("bom-mp");
+
+        selMov.innerHTML = '<option value="">Selecione...</option>';
+        selPA.innerHTML = '<option value="">Selecione PA...</option>';
+        selMP.innerHTML = '<option value="">Selecione MP...</option>';
+
+        (estadoGlobal.cadastros || []).forEach((c) => {
+          selMov.innerHTML += `<option value="${c.codigo}">${c.codigo} - ${c.descricao}</option>`;
+          if (c.codigo.startsWith("PA-") || c.categoria === "Produto Acabado") {
+            selPA.innerHTML += `<option value="${c.codigo}">${c.codigo} - ${c.descricao}</option>`;
+          } else {
+            selMP.innerHTML += `<option value="${c.codigo}">${c.codigo} - ${c.descricao}</option>`;
+          }
+        });
+
+        document.getElementById("card-itens").innerText = (
+          estadoGlobal.cadastros || []
+        ).length;
+        let totalFin = 0,
+          criticos = 0;
+        (estadoGlobal.painelEstoque || []).forEach((p) => {
+          totalFin += p.total;
+          if (p.saldo <= p.minimo) criticos++;
+        });
+        document.getElementById("card-valor-total").innerText =
+          totalFin.toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          });
+        document.getElementById("card-criticos").innerText = criticos;
+
+        // FILTROS E TABELA PAINEL
+        const termoPainel = (
+          document.getElementById("busca-painel")?.value || ""
+        )
+          .toLowerCase()
+          .trim();
+        const filtroStatus =
+          document.getElementById("filtro-status-painel")?.value || "TODOS";
+
+        const tblP = document.getElementById("tbl-painel");
+        tblP.innerHTML = "";
+
+        const itensPainelFiltrados = (estadoGlobal.painelEstoque || []).filter(
+          (p) => {
+            const atendeTexto =
+              p.codigo.toLowerCase().includes(termoPainel) ||
+              p.produto.toLowerCase().includes(termoPainel);
+            const emAlerta = p.saldo <= p.minimo;
+            let atendeStatus = true;
+
+            if (filtroStatus === "ALERTA") atendeStatus = emAlerta;
+            else if (filtroStatus === "OK") atendeStatus = !emAlerta;
+
+            return atendeTexto && atendeStatus;
+          },
+        );
+
+        if (itensPainelFiltrados.length === 0) {
+          tblP.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-slate-400">Nenhum produto encontrado.</td></tr>`;
+        } else {
+          itensPainelFiltrados.forEach((p) => {
+            tblP.innerHTML += `<tr class="hover:bg-slate-50"><td class="p-2 font-bold">${p.codigo}</td><td class="p-2">${p.produto}</td><td class="p-2">${p.entradas.toFixed(2)}</td><td class="p-2">${p.saidas.toFixed(2)}</td><td class="p-2 font-bold ${p.saldo <= p.minimo ? "text-rose-600" : ""}">${p.saldo.toFixed(2)}</td><td class="p-2">${p.minimo.toFixed(2)}</td><td class="p-2">${p.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td><td class="p-2">${p.status === "OK" ? '<span class="text-emerald-600 font-bold">OK</span>' : '<span class="text-rose-600 font-bold">REPOR</span>'}</td></tr>`;
+          });
+        }
+
+        // FILTROS E TABELA CADASTROS
+        const termoCadastros = (
+          document.getElementById("busca-cadastros")?.value || ""
+        )
+          .toLowerCase()
+          .trim();
+        const tblC = document.getElementById("tbl-cadastros");
+        tblC.innerHTML = "";
+
+        const cadastrosFiltrados = (estadoGlobal.cadastros || []).filter(
+          (c) => {
+            return (
+              c.codigo.toLowerCase().includes(termoCadastros) ||
+              c.descricao.toLowerCase().includes(termoCadastros) ||
+              (c.categoria || "").toLowerCase().includes(termoCadastros)
+            );
+          },
+        );
+
+        if (cadastrosFiltrados.length === 0) {
+          tblC.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">Nenhum cadastro encontrado.</td></tr>`;
+        } else {
+          cadastrosFiltrados.forEach((c) => {
+            tblC.innerHTML += `
+              <tr class="hover:bg-slate-50">
+                <td class="p-2 font-bold">${c.codigo}</td>
+                <td class="p-2">${c.descricao}</td>
+                <td class="p-2">${c.categoria}</td>
+                <td class="p-2">${c.unidade}</td>
+                <td class="p-2">R$ ${Number(c.custo).toFixed(2)}</td>
+                <td class="p-2 text-center flex justify-center gap-2">
+                  <button onclick="preencherEdicao('${c.codigo}')" class="bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+                    <i class="fa-solid fa-pen"></i> Editar
+                  </button>
+                  <button onclick="excluirProduto('${c.codigo}')" class="bg-rose-600 hover:bg-rose-700 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+                    <i class="fa-solid fa-trash"></i> Excluir
+                  </button>
+                </td>
+              </tr>`;
+          });
+        }
+
+        // TABELA BOM
+        const tblB = document.getElementById("tbl-bom");
+        tblB.innerHTML = "";
+        (estadoGlobal.estruturaBOM || []).forEach((b) => {
+          tblB.innerHTML += `<tr><td class="p-2 font-bold">${b.codigoPA} - ${b.produtoPA}</td><td class="p-2">${b.codigoMP} - ${b.materiaPrima}</td><td class="p-2 font-bold">${b.qtdConsumida} ${b.unidade}</td></tr>`;
+        });
+
+        // FILTROS E TABELA AUDITORIA
+        const termoAuditoria = (
+          document.getElementById("busca-auditoria")?.value || ""
+        )
+          .toLowerCase()
+          .trim();
+        const tblA = document.getElementById("tbl-auditoria");
+        tblA.innerHTML = "";
+
+        const logsFiltrados = [...(estadoGlobal.logAuditoria || [])]
+          .reverse()
+          .filter((a) => {
+            return (
+              (a.dataHora || "").toLowerCase().includes(termoAuditoria) ||
+              (a.acao || "").toLowerCase().includes(termoAuditoria) ||
+              (a.detalhes || "").toLowerCase().includes(termoAuditoria)
+            );
+          });
+
+        if (logsFiltrados.length === 0) {
+          tblA.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-400">Nenhum registro encontrado.</td></tr>`;
+        } else {
+          logsFiltrados.forEach((a) => {
+            tblA.innerHTML += `<tr><td class="p-2 text-slate-500">${a.dataHora}</td><td class="p-2 font-bold">${a.acao}</td><td class="p-2">${a.detalhes}</td></tr>`;
+          });
+        }
+      }
+
+      async function salvarMovimentacao(e) {
+        e.preventDefault();
+        const body = {
+          tipo: document.getElementById("mov-tipo").value,
+          codigo: document.getElementById("mov-codigo").value,
+          qtd: document.getElementById("mov-qtd").value,
+          obs: document.getElementById("mov-obs").value,
+        };
+
+        const res = await fetch("/api/estoque/movimentar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        const json = await res.json();
+        if (res.ok && json.success) {
+          document.getElementById("mov-qtd").value = "";
+          document.getElementById("mov-obs").value = "";
+          carregarDados();
+          alert("Lançamento efetuado com sucesso!");
+        } else {
+          alert("ERRO DE VALIDAÇÃO: " + (json.error || "A operação falhou."));
+        }
+      }
+
+      async function salvarProduto(e) {
+        e.preventDefault();
+        const body = {
+          codigo: document.getElementById("cad-codigo").value,
+          descricao: document.getElementById("cad-desc").value,
+          ncm: document.getElementById("cad-ncm").value,
+          categoria: document.getElementById("cad-cat").value,
+          unidade: document.getElementById("cad-und").value,
+          minimo: document.getElementById("cad-min").value,
+          custo: document.getElementById("cad-custo").value,
+        };
+        const res = await fetch("/api/estoque/cadastrar-produto", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const json = await res.json();
+        if (res.ok && json.success) {
+          carregarDados();
+          alert("Produto salvo!");
+        } else alert("Erro: " + json.error);
+      }
+
+      async function salvarBOM(e) {
+        e.preventDefault();
+        const body = {
+          codigoPA: document.getElementById("bom-pa").value,
+          codigoMP: document.getElementById("bom-mp").value,
+          qtdConsumida: document.getElementById("bom-qtd").value,
+        };
+        const res = await fetch("/api/estoque/cadastrar-bom", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const json = await res.json();
+        if (res.ok && json.success) {
+          carregarDados();
+          alert("Receita BOM salva!");
+        } else alert("Erro: " + json.error);
+      }
+
+      async function gerarBackupExcel() {
+        try {
+          const res = await fetch("/api/estoque/gerar-backup-excel", {
+            method: "POST",
+          });
+          if (!res.ok) throw new Error("Falha ao gerar o ficheiro.");
+
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `Backup_Estoque_${new Date().toISOString().slice(0, 10)}.xlsx`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(url);
+        } catch (err) {
+          alert("Erro ao transferir o backup: " + err.message);
+        }
+      }
+
+      async function gerarRelatorioContador() {
+        try {
+          const res = await fetch("/api/estoque/gerar-relatorio-contador", {
+            method: "POST",
+          });
+          if (!res.ok) throw new Error("Falha ao gerar o relatório.");
+
+          const blob = await res.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `Relatorio_Contabil_${new Date().toISOString().slice(0, 10)}.xlsx`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(url);
+        } catch (err) {
+          alert("Erro ao transferir o relatório: " + err.message);
+        }
+      }
+
+      // EXPORTAR BACKUP EM JSON
+      function exportarBackupJSON() {
+        window.location.href = "/api/estoque/exportar-json";
+      }
+
+      // RESTAURAR BACKUP EM JSON
+      async function importarBackupJSON(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (
+          !confirm(
+            "ATENÇÃO: Restaurar um arquivo de backup substituirá todos os dados atuais do estoque! Deseja continuar?",
+          )
+        ) {
+          event.target.value = "";
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("arquivoBackup", file);
+
+        try {
+          const res = await fetch("/api/estoque/importar-json", {
+            method: "POST",
+            body: formData,
+          });
+
+          const json = await res.json();
+          if (res.ok && json.success) {
+            carregarDados();
+            alert("Base de dados restaurada com sucesso!");
+          } else {
+            alert("Erro ao restaurar: " + (json.error || "Arquivo inválido."));
+          }
+        } catch (err) {
+          alert("Erro na transmissão do arquivo: " + err.message);
+        } finally {
+          event.target.value = "";
+        }
+      }
+
+      function mudarAba(aba) {
+        ["lancamento", "painel", "cadastros", "bom", "auditoria"].forEach(
+          (a) => {
+            document.getElementById(`sec-${a}`).classList.add("hidden");
+            document.getElementById(`tab-${a}`).className =
+              "pb-3 border-b-2 border-transparent text-slate-500";
+          },
+        );
+        document.getElementById(`sec-${aba}`).classList.remove("hidden");
+        document.getElementById(`tab-${aba}`).className =
+          "pb-3 border-b-2 border-emerald-600 text-emerald-600 font-bold";
+      }
+
+      function preencherEdicao(codigo) {
+        const prod = (estadoGlobal.cadastros || []).find(
+          (c) => c.codigo.toUpperCase().trim() === codigo.toUpperCase().trim(),
+        );
+        if (!prod) return;
+
+        document.getElementById("cad-codigo").value = prod.codigo;
+        document.getElementById("cad-desc").value = prod.descricao;
+        document.getElementById("cad-ncm").value = prod.ncm || "-";
+        document.getElementById("cad-cat").value = prod.categoria;
+        document.getElementById("cad-und").value = prod.unidade;
+        document.getElementById("cad-min").value = prod.minimo;
+        document.getElementById("cad-custo").value = prod.custo;
+
+        mudarAba("cadastros");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      async function excluirProduto(codigo) {
+        if (!confirm(`Tem certeza que deseja excluir o produto ${codigo}?`))
+          return;
+
+        const res = await fetch(`/api/estoque/excluir-produto/${codigo}`, {
+          method: "DELETE",
+        });
+        const json = await res.json();
+
+        if (res.ok && json.success) {
+          carregarDados();
+          alert(`Produto ${codigo} excluído com sucesso!`);
+        } else {
+          alert("Erro ao excluir: " + json.error);
+        }
+      }
+
+      function abrirModalAjuste() {
+        const select = document.getElementById("ajuste-codigo");
+        select.innerHTML = '<option value="">Selecione...</option>';
+        (estadoGlobal.cadastros || []).forEach((c) => {
+          select.innerHTML += `<option value="${c.codigo}">${c.codigo} - ${c.descricao}</option>`;
+        });
+        document.getElementById("modal-ajuste").classList.remove("hidden");
+      }
+
+      function fecharModalAjuste() {
+        document.getElementById("modal-ajuste").classList.add("hidden");
+        document.getElementById("ajuste-qtd-fisica").value = "";
+        document.getElementById("ajuste-motivo").value = "";
+      }
+
+      function atualizarInfoAjuste() {
+        const codigo = document.getElementById("ajuste-codigo").value;
+        const prod = (estadoGlobal.painelEstoque || []).find(
+          (p) => p.codigo.toUpperCase().trim() === codigo.toUpperCase().trim(),
+        );
+        document.getElementById("ajuste-saldo-sistema").innerText = prod
+          ? prod.saldo.toFixed(2)
+          : "0.00";
+      }
+
+      async function salvarAjuste(e) {
+        e.preventDefault();
+        const body = {
+          codigo: document.getElementById("ajuste-codigo").value,
+          quantidadeFisica: document.getElementById("ajuste-qtd-fisica").value,
+          motivo: document.getElementById("ajuste-motivo").value,
+        };
+
+        const res = await fetch("/api/estoque/ajustar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        const json = await res.json();
+        if (res.ok && json.success) {
+          fecharModalAjuste();
+          carregarDados();
+          alert(
+            `Ajuste concluído com sucesso! Saldo alterado de ${json.saldoAnterior.toFixed(2)} para ${json.novoSaldo.toFixed(2)}.`,
+          );
+        } else {
+          alert(
+            "ERRO DE VALIDAÇÃO: " + (json.error || "Falha ao realizar ajuste."),
+          );
+        }
+      }
+    </script>
+  </body>
+</html>

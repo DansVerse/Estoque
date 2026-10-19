@@ -1,0 +1,15 @@
+# Ambientes virtuais e dependências
+node_modules/
+node-portable/
+.venv/
+__pycache__/
+
+# Pasta com arquivos de backups e uploads temporários
+Estoques/
+uploads/
+
+# Arquivos temporários do sistema
+*.zip
+*.tmp
+~$*.xlsx
+~$*.xlsm

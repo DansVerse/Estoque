@@ -37,10 +37,10 @@ if not exist ".venv" (
     )
 )
 
-rem 4. Instalar Dependencias do Python no ambiente virtual
+rem 4. Instalar Dependencias do Python no ambiente virtual (openpyxl, pandas, reportlab)
 echo Verificando e instalando bibliotecas Python...
 ".venv\Scripts\python.exe" -m pip install --upgrade pip > nul
-".venv\Scripts\pip.exe" install openpyxl pandas > nul
+".venv\Scripts\pip.exe" install openpyxl pandas reportlab > nul
 
 rem 5. Instalar Dependencias do Node.js
 if not exist "node_modules" (

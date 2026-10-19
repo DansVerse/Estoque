@@ -860,19 +860,19 @@
           const res = await fetch("/api/estoque/gerar-relatorio-contador", {
             method: "POST",
           });
-          if (!res.ok) throw new Error("Falha ao gerar o relatório.");
+          if (!res.ok) throw new Error("Falha ao gerar o relatório PDF.");
 
           const blob = await res.blob();
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          a.download = `Relatorio_Contabil_${new Date().toISOString().slice(0, 10)}.xlsx`;
+          a.download = `Relatorio_Contabil_Estoque_${new Date().toISOString().slice(0, 10)}.pdf`;
           document.body.appendChild(a);
           a.click();
           a.remove();
           window.URL.revokeObjectURL(url);
         } catch (err) {
-          alert("Erro ao transferir o relatório: " + err.message);
+          alert("Erro ao gerar o relatório PDF contábil: " + err.message);
         }
       }
 

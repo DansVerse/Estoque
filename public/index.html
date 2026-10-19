@@ -105,8 +105,10 @@
           </div>
         </div>
 
+        <!-- CARD DE ALERTA CLICÁVEL -->
         <div
-          class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between"
+          onclick="filtrarItensAlerta()"
+          class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between cursor-pointer hover:border-rose-300 hover:shadow-md transition"
         >
           <div>
             <p class="text-xs font-semibold uppercase text-slate-400">
@@ -174,6 +176,7 @@
         <h2 class="text-lg font-bold mb-4 text-emerald-700">
           Registrar Entrada ou Saída
         </h2>
+
         <form
           onsubmit="salvarMovimentacao(event)"
           class="grid grid-cols-1 md:grid-cols-3 gap-4"
@@ -1016,6 +1019,16 @@
           alert(
             "ERRO DE VALIDAÇÃO: " + (json.error || "Falha ao realizar ajuste."),
           );
+        }
+      }
+
+      // FUNÇÃO DE FILTRO RÁPIDO AO CLICAR NO CARD "ITENS EM ALERTA"
+      function filtrarItensAlerta() {
+        mudarAba("painel");
+        const selectStatus = document.getElementById("filtro-status-painel");
+        if (selectStatus) {
+          selectStatus.value = "ALERTA";
+          renderizar();
         }
       }
     </script>

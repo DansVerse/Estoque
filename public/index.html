@@ -3,13 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>StockFlow Pro - RT Esquadrias</title>
+    <title>StockFlow Pro - RT Esquadrias (CNPJ: 03.061.101/0001-60)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+      /* Estilos complementares de responsividade e ajuste de impressão PDF */
+      @media (max-width: 768px) {
+        body {
+          font-size: 14px;
+        }
+      }
+    </style>
   </head>
   <body class="bg-slate-100 font-sans text-slate-800">
     <header class="bg-slate-900 text-white shadow-md sticky top-0 z-50">
@@ -20,8 +29,9 @@
           <i class="fa-solid fa-boxes-stacked text-emerald-400 text-2xl"></i>
           <h1 class="text-xl font-bold">
             StockFlow Pro
-            <span class="text-xs font-normal text-slate-400"
-              >| RT Esquadrias</span
+            <span class="text-xs font-normal text-slate-400 block sm:inline"
+              >| RT Esquadrias | Morada do Vale I — CNPJ:
+              03.061.101/0001-60</span
             >
           </h1>
         </div>
@@ -129,40 +139,40 @@
 
       <!-- NAVEGAÇÃO ENTRE ABAS -->
       <div
-        class="border-b border-slate-200 flex gap-4 text-sm font-medium overflow-x-auto"
+        class="border-b border-slate-200 flex gap-4 text-sm font-medium overflow-x-auto pb-1"
       >
         <button
           onclick="mudarAba('lancamento')"
           id="tab-lancamento"
-          class="pb-3 border-b-2 border-emerald-600 text-emerald-600 font-bold"
+          class="pb-3 border-b-2 border-emerald-600 text-emerald-600 font-bold whitespace-nowrap"
         >
           Lançamento Rápido
         </button>
         <button
           onclick="mudarAba('painel')"
           id="tab-painel"
-          class="pb-3 border-b-2 border-transparent text-slate-500"
+          class="pb-3 border-b-2 border-transparent text-slate-500 whitespace-nowrap"
         >
           Painel de Estoque
         </button>
         <button
           onclick="mudarAba('cadastros')"
           id="tab-cadastros"
-          class="pb-3 border-b-2 border-transparent text-slate-500"
+          class="pb-3 border-b-2 border-transparent text-slate-500 whitespace-nowrap"
         >
           Gestão de Produtos
         </button>
         <button
           onclick="mudarAba('bom')"
           id="tab-bom"
-          class="pb-3 border-b-2 border-transparent text-slate-500"
+          class="pb-3 border-b-2 border-transparent text-slate-500 whitespace-nowrap"
         >
           Estrutura BOM
         </button>
         <button
           onclick="mudarAba('auditoria')"
           id="tab-auditoria"
-          class="pb-3 border-b-2 border-transparent text-slate-500"
+          class="pb-3 border-b-2 border-transparent text-slate-500 whitespace-nowrap"
         >
           Auditoria & Logs
         </button>
@@ -283,7 +293,7 @@
         </div>
 
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm">
+          <table class="w-full text-left text-sm whitespace-nowrap">
             <thead class="bg-slate-100">
               <tr>
                 <th class="p-2">Código</th>
@@ -399,7 +409,7 @@
         </div>
 
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm">
+          <table class="w-full text-left text-sm whitespace-nowrap">
             <thead class="bg-slate-100">
               <tr>
                 <th class="p-2">Código</th>
@@ -464,7 +474,7 @@
         </form>
         <h3 class="font-bold mb-2">Fichas Técnicas Ativas</h3>
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm">
+          <table class="w-full text-left text-sm whitespace-nowrap">
             <thead class="bg-slate-100">
               <tr>
                 <th class="p-2">Produto Acabado</th>
@@ -500,7 +510,7 @@
           </div>
         </div>
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm">
+          <table class="w-full text-left text-sm whitespace-nowrap">
             <thead class="bg-slate-100">
               <tr>
                 <th class="p-2">Data/Hora</th>
@@ -926,12 +936,12 @@
           (a) => {
             document.getElementById(`sec-${a}`).classList.add("hidden");
             document.getElementById(`tab-${a}`).className =
-              "pb-3 border-b-2 border-transparent text-slate-500";
+              "pb-3 border-b-2 border-transparent text-slate-500 whitespace-nowrap";
           },
         );
         document.getElementById(`sec-${aba}`).classList.remove("hidden");
         document.getElementById(`tab-${aba}`).className =
-          "pb-3 border-b-2 border-emerald-600 text-emerald-600 font-bold";
+          "pb-3 border-b-2 border-emerald-600 text-emerald-600 font-bold whitespace-nowrap";
       }
 
       function preencherEdicao(codigo) {

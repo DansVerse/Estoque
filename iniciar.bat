@@ -37,7 +37,7 @@ if not exist ".venv" (
     )
 )
 
-rem 4. Instalar Dependencias do Python no ambiente virtual (openpyxl, pandas, reportlab)
+rem 4. Instalar Dependencias do Python no ambiente virtual
 echo Verificando e instalando bibliotecas Python...
 ".venv\Scripts\python.exe" -m pip install --upgrade pip > nul
 ".venv\Scripts\pip.exe" install openpyxl pandas reportlab > nul
@@ -59,13 +59,29 @@ if not exist "uploads" (
     mkdir uploads
 )
 
+rem 7. Configuração Automática do Arranque com o Windows (Startup) e Segundo Plano
+set "PASTA_STARTUP=%appdata%\Microsoft\Windows\Start Menu\Programs\Startup"
+set "CAMINHO_VBS=%~dp0iniciar_invisivel.vbs"
+set "CAMINHO_ATALHO=%PASTA_STARTUP%\StockFlow_Pro_RT_Esquadrias.lnk"
+
+if not exist "%CAMINHO_ATALHO%" (
+    echo Configurando inicializacao automatica com o Windows...
+    powershell -Command "$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut('%CAMINHO_ATALHO%'); $s.TargetPath = 'wscript.exe'; $s.Arguments = '\"%CAMINHO_VBS%\"'; $s.WorkingDirectory = '%~dp0'; $s.Save()" >nul
+)
+
 echo.
 echo ====================================================
 echo AMBIENTE CONFIGURADO COM SUCESSO!
-echo INICIANDO SERVIDOR EM http://localhost:3000
+echo INICIANDO O SISTEMA EM SEGUNDO PLANO...
 echo ====================================================
-echo.
 
-rem 7. Iniciar o Servidor Node.js
-node server.js
-pause
+rem 8. Disparar o script invisivel que liga o servidor e abre o browser, fechando esta janela
+if exist "%CAMINHO_VBS%" (
+    start "" wscript.exe "%CAMINHO_VBS%"
+) else (
+    start "" node server.js
+    timeout /t 2 /nobreak >nul
+    start http://localhost:3000
+)
+
+exit

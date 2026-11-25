@@ -3,16 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>StockFlow Pro - RT Esquadrias (CNPJ: 03.061.101/0001-60)</title>
+    <title>StockFlow Pro - A M Facas (CNPJ: 01.216.475/0001-82)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-      /* Estilos complementares de responsividade e ajuste de impressão PDF */
       @media (max-width: 768px) {
         body {
           font-size: 14px;
@@ -26,12 +24,11 @@
         class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center flex-wrap gap-3"
       >
         <div class="flex items-center gap-3">
-          <i class="fa-solid fa-boxes-stacked text-emerald-400 text-2xl"></i>
+          <i class="fa-solid fa-vest text-amber-400 text-2xl"></i>
           <h1 class="text-xl font-bold">
             StockFlow Pro
             <span class="text-xs font-normal text-slate-400 block sm:inline"
-              >| RT Esquadrias | Morada do Vale I — CNPJ:
-              03.061.101/0001-60</span
+              >| A M Facas (Ailton de A. Maia) — CNPJ: 01.216.475/0001-82</span
             >
           </h1>
         </div>
@@ -53,7 +50,7 @@
           <button
             onclick="exportarBackupJSON()"
             class="bg-slate-700 hover:bg-slate-600 text-white font-medium px-3 py-2 rounded-lg text-sm shadow transition flex items-center gap-2"
-            title="Descarregar cópia de segurança em JSON"
+            title="Baixar cópia de segurança em JSON"
           >
             <i class="fa-solid fa-download"></i>
             <span>Exportar JSON</span>
@@ -61,10 +58,17 @@
           <button
             onclick="document.getElementById('input-importar-json').click()"
             class="bg-amber-600 hover:bg-amber-500 text-white font-medium px-3 py-2 rounded-lg text-sm shadow transition flex items-center gap-2"
-            title="Restaurar base de dados através de um ficheiro JSON"
+            title="Restaurar base de dados através de um arquivo JSON"
           >
             <i class="fa-solid fa-upload"></i>
             <span>Restaurar JSON</span>
+          </button>
+          <button
+            onclick="abrirModalAjuda()"
+            class="bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold w-10 h-10 rounded-lg text-sm shadow transition flex items-center justify-center border border-slate-700"
+            title="Ajuda e Manual do Usuário"
+          >
+            <i class="fa-solid fa-question text-base"></i>
           </button>
           <input
             type="file"
@@ -115,7 +119,6 @@
           </div>
         </div>
 
-        <!-- CARD DE ALERTA CLICÁVEL -->
         <div
           onclick="filtrarItensAlerta()"
           class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between cursor-pointer hover:border-rose-300 hover:shadow-md transition"
@@ -186,7 +189,6 @@
         <h2 class="text-lg font-bold mb-4 text-emerald-700">
           Registrar Entrada ou Saída
         </h2>
-
         <form
           onsubmit="salvarMovimentacao(event)"
           class="grid grid-cols-1 md:grid-cols-3 gap-4"
@@ -228,12 +230,13 @@
           </div>
           <div class="md:col-span-2">
             <label class="block text-xs font-semibold text-slate-600 mb-1"
-              >Observação / Ordem Produção</label
+              >Observação / Ordem de Produção / Cliente</label
             >
             <input
               type="text"
               id="mov-obs"
               class="w-full bg-slate-50 border p-2 rounded-lg text-sm"
+              placeholder="Ex: Fabricação lote facas cutelaria"
             />
           </div>
           <div class="flex items-end">
@@ -263,7 +266,6 @@
           </button>
         </div>
 
-        <!-- BARRA DE PESQUISA E FILTROS -->
         <div
           class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4 bg-slate-50 p-3 rounded-lg border border-slate-200"
         >
@@ -326,47 +328,52 @@
           <div>
             <label class="text-xs font-semibold"
               >Código (ex: MP-001 ou PA-001)</label
-            ><input
+            >
+            <input
               type="text"
               id="cad-codigo"
               required
               class="w-full border p-2 rounded-lg text-sm"
+              placeholder="Ex: MP-ACO-01"
             />
           </div>
           <div>
-            <label class="text-xs font-semibold">Descrição</label
-            ><input
+            <label class="text-xs font-semibold">Descrição</label>
+            <input
               type="text"
               id="cad-desc"
               required
               class="w-full border p-2 rounded-lg text-sm"
+              placeholder="Ex: Aço Inox 420 (Kg / Barra)"
             />
           </div>
           <div>
-            <label class="text-xs font-semibold">NCM</label
-            ><input
+            <label class="text-xs font-semibold">NCM</label>
+            <input
               type="text"
               id="cad-ncm"
               class="w-full border p-2 rounded-lg text-sm"
+              placeholder="Opcional p/ Contabilidade"
             />
           </div>
           <div>
-            <label class="text-xs font-semibold">Categoria</label
-            ><select id="cad-cat" class="w-full border p-2 rounded-lg text-sm">
+            <label class="text-xs font-semibold">Categoria</label>
+            <select id="cad-cat" class="w-full border p-2 rounded-lg text-sm">
               <option value="Matéria-Prima">Matéria-Prima</option>
               <option value="Produto Acabado">Produto Acabado</option>
             </select>
           </div>
           <div>
-            <label class="text-xs font-semibold">Unidade</label
-            ><select id="cad-und" class="w-full border p-2 rounded-lg text-sm">
+            <label class="text-xs font-semibold">Unidade</label>
+            <select id="cad-und" class="w-full border p-2 rounded-lg text-sm">
               <option value="KG">KG</option>
               <option value="UN">UN</option>
+              <option value="M">M</option>
             </select>
           </div>
           <div>
-            <label class="text-xs font-semibold">Estoque Mínimo</label
-            ><input
+            <label class="text-xs font-semibold">Estoque Mínimo</label>
+            <input
               type="number"
               step="0.01"
               id="cad-min"
@@ -374,8 +381,8 @@
             />
           </div>
           <div>
-            <label class="text-xs font-semibold">Custo Unitário (R$)</label
-            ><input
+            <label class="text-xs font-semibold">Custo Unitário (R$)</label>
+            <input
               type="number"
               step="0.01"
               id="cad-custo"
@@ -431,15 +438,15 @@
         class="hidden bg-white p-6 rounded-xl shadow-sm border border-slate-200"
       >
         <h2 class="text-lg font-bold mb-4 text-purple-700">
-          Receita de Fabricação (BOM)
+          Receita de Fabricação / Cutelaria (BOM)
         </h2>
         <form
           onsubmit="salvarBOM(event)"
           class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6"
         >
           <div>
-            <label class="text-xs font-semibold">Produto Acabado (PA)</label
-            ><select
+            <label class="text-xs font-semibold">Produto Acabado (PA)</label>
+            <select
               id="bom-pa"
               class="w-full border p-2 rounded-lg text-sm"
             ></select>
@@ -447,7 +454,8 @@
           <div>
             <label class="text-xs font-semibold"
               >Matéria-Prima Necessária (MP)</label
-            ><select
+            >
+            <select
               id="bom-mp"
               class="w-full border p-2 rounded-lg text-sm"
             ></select>
@@ -455,7 +463,8 @@
           <div>
             <label class="text-xs font-semibold"
               >Qtd Consumida p/ Fabricar 1 UN</label
-            ><input
+            >
+            <input
               type="number"
               step="0.01"
               id="bom-qtd"
@@ -472,12 +481,14 @@
             </button>
           </div>
         </form>
-        <h3 class="font-bold mb-2">Fichas Técnicas Ativas</h3>
+        <h3 class="font-bold mb-2">
+          Fichas Técnicas Ativas (Agrupadas por Produto)
+        </h3>
         <div class="overflow-x-auto">
           <table class="w-full text-left text-sm whitespace-nowrap">
             <thead class="bg-slate-100">
               <tr>
-                <th class="p-2">Produto Acabado</th>
+                <th class="p-2">Tipo / Referência</th>
                 <th class="p-2">Insumo / Matéria-Prima</th>
                 <th class="p-2">Consumo por UN</th>
               </tr>
@@ -541,7 +552,6 @@
             <i class="fa-solid fa-xmark text-xl"></i>
           </button>
         </div>
-
         <form onsubmit="salvarAjuste(event)" class="space-y-3">
           <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1"
@@ -556,7 +566,6 @@
               <option value="">Selecione...</option>
             </select>
           </div>
-
           <div class="bg-slate-50 p-3 rounded-lg text-xs space-y-1">
             <p class="text-slate-500">
               Saldo Atual no Sistema:
@@ -565,10 +574,9 @@
               >
             </p>
           </div>
-
           <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1"
-              >Quantidade Física Contada no Galpão</label
+              >Quantidade Física Contada</label
             >
             <input
               type="number"
@@ -579,7 +587,6 @@
               placeholder="Ex: 50.00"
             />
           </div>
-
           <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1"
               >Motivo / Justificativa do Ajuste</label
@@ -589,10 +596,9 @@
               id="ajuste-motivo"
               required
               class="w-full bg-slate-50 border p-2 rounded-lg text-sm"
-              placeholder="Ex: Contagem física quinzenal / Perda de material"
+              placeholder="Ex: Contagem física quinzenal / Quebra"
             />
           </div>
-
           <div class="flex gap-2 pt-2">
             <button
               type="button"
@@ -609,6 +615,92 @@
             </button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <!-- Modal de Ajuda / Manual do Usuário -->
+    <div
+      id="modal-ajuda"
+      class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    >
+      <div class="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 space-y-4">
+        <div class="flex justify-between items-center border-b pb-3">
+          <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-circle-question text-amber-500"></i> Manual de
+            Utilização - StockFlow Pro
+          </h3>
+          <button
+            onclick="fecharModalAjuda()"
+            class="text-slate-400 hover:text-slate-600"
+          >
+            <i class="fa-solid fa-xmark text-xl"></i>
+          </button>
+        </div>
+        <div
+          class="space-y-3 text-sm text-slate-600 max-h-96 overflow-y-auto pr-2"
+        >
+          <div>
+            <h4 class="font-bold text-slate-800 flex items-center gap-1.5">
+              <i class="fa-solid fa-right-to-bracket text-emerald-600"></i> 1.
+              Lançamento Rápido
+            </h4>
+            <p>
+              Utilizado para registrar entradas (compras/retornos) ou saídas
+              (vendas/produção). Na entrada de Produto Acabado (PA-), as
+              matérias-primas da ficha técnica são baixadas automaticamente.
+            </p>
+          </div>
+          <div>
+            <h4 class="font-bold text-slate-800 flex items-center gap-1.5">
+              <i class="fa-solid fa-boxes-stacked text-blue-600"></i> 2. Painel
+              de Estoque
+            </h4>
+            <p>
+              Mostra saldos atuais e valor total em estoque. Clique no card de
+              Itens em Alerta para filtrar rapidamente o que precisa de
+              reposição.
+            </p>
+          </div>
+          <div>
+            <h4 class="font-bold text-slate-800 flex items-center gap-1.5">
+              <i class="fa-solid fa-tags text-indigo-600"></i> 3. Gestão de
+              Produtos
+            </h4>
+            <p>
+              Cadastre ou edite Matérias-Primas e Produtos Acabados, definindo
+              NCM, unidade, estoque mínimo e custo unitário.
+            </p>
+          </div>
+          <div>
+            <h4 class="font-bold text-slate-800 flex items-center gap-1.5">
+              <i class="fa-solid fa-list-check text-purple-600"></i> 4.
+              Estrutura BOM (Ficha Técnica)
+            </h4>
+            <p>
+              Agrupa os insumos necessários para cada Produto Acabado e permite
+              remover itens com o botão Remover.
+            </p>
+          </div>
+          <div>
+            <h4 class="font-bold text-slate-800 flex items-center gap-1.5">
+              <i class="fa-solid fa-file-excel text-emerald-700"></i> 5.
+              Relatórios & Backups
+            </h4>
+            <p>
+              Gere Relatório Contábil em PDF, Backup em Excel ou
+              exporte/restaure a base completa em JSON.
+            </p>
+          </div>
+        </div>
+        <div class="pt-2 border-t flex justify-end">
+          <button
+            type="button"
+            onclick="fecharModalAjuda()"
+            class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-4 py-2 rounded-lg text-sm"
+          >
+            Entendido
+          </button>
+        </div>
       </div>
     </div>
 
@@ -667,7 +759,7 @@
           });
         document.getElementById("card-criticos").innerText = criticos;
 
-        // FILTROS E TABELA PAINEL
+        // TABELA PAINEL
         const termoPainel = (
           document.getElementById("busca-painel")?.value || ""
         )
@@ -675,7 +767,6 @@
           .trim();
         const filtroStatus =
           document.getElementById("filtro-status-painel")?.value || "TODOS";
-
         const tblP = document.getElementById("tbl-painel");
         tblP.innerHTML = "";
 
@@ -686,10 +777,8 @@
               p.produto.toLowerCase().includes(termoPainel);
             const emAlerta = p.saldo <= p.minimo;
             let atendeStatus = true;
-
             if (filtroStatus === "ALERTA") atendeStatus = emAlerta;
             else if (filtroStatus === "OK") atendeStatus = !emAlerta;
-
             return atendeTexto && atendeStatus;
           },
         );
@@ -702,7 +791,7 @@
           });
         }
 
-        // FILTROS E TABELA CADASTROS
+        // TABELA CADASTROS
         const termoCadastros = (
           document.getElementById("busca-cadastros")?.value || ""
         )
@@ -710,15 +799,10 @@
           .trim();
         const tblC = document.getElementById("tbl-cadastros");
         tblC.innerHTML = "";
-
         const cadastrosFiltrados = (estadoGlobal.cadastros || []).filter(
-          (c) => {
-            return (
-              c.codigo.toLowerCase().includes(termoCadastros) ||
-              c.descricao.toLowerCase().includes(termoCadastros) ||
-              (c.categoria || "").toLowerCase().includes(termoCadastros)
-            );
-          },
+          (c) =>
+            c.codigo.toLowerCase().includes(termoCadastros) ||
+            c.descricao.toLowerCase().includes(termoCadastros),
         );
 
         if (cadastrosFiltrados.length === 0) {
@@ -733,25 +817,56 @@
                 <td class="p-2">${c.unidade}</td>
                 <td class="p-2">R$ ${Number(c.custo).toFixed(2)}</td>
                 <td class="p-2 text-center flex justify-center gap-2">
-                  <button onclick="preencherEdicao('${c.codigo}')" class="bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
-                    <i class="fa-solid fa-pen"></i> Editar
-                  </button>
-                  <button onclick="excluirProduto('${c.codigo}')" class="bg-rose-600 hover:bg-rose-700 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
-                    <i class="fa-solid fa-trash"></i> Excluir
-                  </button>
+                  <button onclick="preencherEdicao('${c.codigo}')" class="bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded text-xs flex items-center gap-1"><i class="fa-solid fa-pen"></i> Editar</button>
+                  <button onclick="excluirProduto('${c.codigo}')" class="bg-rose-600 hover:bg-rose-700 text-white px-2 py-1 rounded text-xs flex items-center gap-1"><i class="fa-solid fa-trash"></i> Excluir</button>
                 </td>
               </tr>`;
           });
         }
 
-        // TABELA BOM
+        // TABELA BOM ORGANIZADA E AGRUPADA POR PRODUTO ACABADO
         const tblB = document.getElementById("tbl-bom");
         tblB.innerHTML = "";
-        (estadoGlobal.estruturaBOM || []).forEach((b) => {
-          tblB.innerHTML += `<tr><td class="p-2 font-bold">${b.codigoPA} - ${b.produtoPA}</td><td class="p-2">${b.codigoMP} - ${b.materiaPrima}</td><td class="p-2 font-bold">${b.qtdConsumida} ${b.unidade}</td></tr>`;
-        });
+        const bomList = estadoGlobal.estruturaBOM || [];
 
-        // FILTROS E TABELA AUDITORIA
+        if (bomList.length === 0) {
+          tblB.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-400">Nenhuma ficha técnica cadastrada.</td></tr>`;
+        } else {
+          const agrupado = {};
+          bomList.forEach((b, index) => {
+            const key = b.codigoPA;
+            if (!agrupado[key]) {
+              agrupado[key] = { nome: b.produtoPA, itens: [] };
+            }
+            agrupado[key].itens.push({ ...b, originalIndex: index });
+          });
+
+          for (const [codigoPA, grupo] of Object.entries(agrupado)) {
+            tblB.innerHTML += `
+              <tr class="bg-purple-50 border-t-2 border-purple-200">
+                <td colspan="3" class="p-3 font-bold text-purple-900">
+                  <i class="fa-solid fa-box-open mr-2"></i> Produto Acabado: ${codigoPA} - ${grupo.nome}
+                </td>
+              </tr>
+            `;
+            grupo.itens.forEach((b) => {
+              tblB.innerHTML += `
+                <tr class="hover:bg-slate-50 border-b">
+                  <td class="p-3 pl-8 text-slate-500 text-xs">↳ Insumo vinculado</td>
+                  <td class="p-3 font-medium text-slate-700">${b.codigoMP} - ${b.materiaPrima}</td>
+                  <td class="p-3 flex justify-between items-center">
+                    <span class="font-bold text-slate-900">${b.qtdConsumida} ${b.unidade}</span>
+                    <button type="button" data-pa="${encodeURIComponent(codigoPA)}" data-mp="${encodeURIComponent(b.codigoMP)}" data-idx="${b.originalIndex}" onclick="excluirBOM(this)" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1 transition">
+                      <i class="fa-solid fa-trash"></i> Remover
+                    </button>
+                  </td>
+                </tr>
+              `;
+            });
+          }
+        }
+
+        // TABELA AUDITORIA
         const termoAuditoria = (
           document.getElementById("busca-auditoria")?.value || ""
         )
@@ -759,16 +874,14 @@
           .trim();
         const tblA = document.getElementById("tbl-auditoria");
         tblA.innerHTML = "";
-
         const logsFiltrados = [...(estadoGlobal.logAuditoria || [])]
           .reverse()
-          .filter((a) => {
-            return (
+          .filter(
+            (a) =>
               (a.dataHora || "").toLowerCase().includes(termoAuditoria) ||
               (a.acao || "").toLowerCase().includes(termoAuditoria) ||
-              (a.detalhes || "").toLowerCase().includes(termoAuditoria)
-            );
-          });
+              (a.detalhes || "").toLowerCase().includes(termoAuditoria),
+          );
 
         if (logsFiltrados.length === 0) {
           tblA.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-400">Nenhum registro encontrado.</td></tr>`;
@@ -787,13 +900,11 @@
           qtd: document.getElementById("mov-qtd").value,
           obs: document.getElementById("mov-obs").value,
         };
-
         const res = await fetch("/api/estoque/movimentar", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
-
         const json = await res.json();
         if (res.ok && json.success) {
           document.getElementById("mov-qtd").value = "";
@@ -801,7 +912,7 @@
           carregarDados();
           alert("Lançamento efetuado com sucesso!");
         } else {
-          alert("ERRO DE VALIDAÇÃO: " + (json.error || "A operação falhou."));
+          alert("ERRO: " + (json.error || "A operação falhou."));
         }
       }
 
@@ -847,18 +958,57 @@
         } else alert("Erro: " + json.error);
       }
 
+      async function excluirBOM(
+        btnOrIndex,
+        codigoPAEncoded = "",
+        codigoMPEncoded = "",
+      ) {
+        if (
+          !confirm(
+            "Tem certeza que deseja remover esta matéria-prima da ficha técnica?",
+          )
+        ) {
+          return;
+        }
+        let index = null;
+        let pa = codigoPAEncoded;
+        let mp = codigoMPEncoded;
+        if (btnOrIndex && typeof btnOrIndex === "object") {
+          index = btnOrIndex.dataset?.idx ?? null;
+          pa = btnOrIndex.dataset?.pa ?? "";
+          mp = btnOrIndex.dataset?.mp ?? "";
+        } else {
+          index = btnOrIndex;
+        }
+        try {
+          const res = await fetch("/api/estoque/remover-bom", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: index, codigoPA: pa, codigoMP: mp }),
+          });
+          const json = await res.json();
+          if (res.ok && json.success) {
+            await carregarDados();
+            alert("Insumo removido da receita com sucesso!");
+          } else {
+            alert("Erro ao remover: " + (json.error || "Operação falhou."));
+          }
+        } catch (err) {
+          alert("Erro de comunicação ao remover insumo: " + err.message);
+        }
+      }
+
       async function gerarBackupExcel() {
         try {
           const res = await fetch("/api/estoque/gerar-backup-excel", {
             method: "POST",
           });
-          if (!res.ok) throw new Error("Falha ao gerar o ficheiro.");
-
+          if (!res.ok) throw new Error("Falha ao gerar o arquivo.");
           const blob = await res.blob();
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          a.download = `Backup_Estoque_${new Date().toISOString().slice(0, 10)}.xlsx`;
+          a.download = `Backup_Estoque_AM_Facas_${new Date().toISOString().slice(0, 10)}.xlsx`;
           document.body.appendChild(a);
           a.click();
           a.remove();
@@ -874,58 +1024,51 @@
             method: "POST",
           });
           if (!res.ok) throw new Error("Falha ao gerar o relatório PDF.");
-
           const blob = await res.blob();
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          a.download = `Relatorio_Contabil_Estoque_${new Date().toISOString().slice(0, 10)}.pdf`;
+          a.download = `Relatorio_Contabil_AM_Facas_${new Date().toISOString().slice(0, 10)}.pdf`;
           document.body.appendChild(a);
           a.click();
           a.remove();
           window.URL.revokeObjectURL(url);
         } catch (err) {
-          alert("Erro ao gerar o relatório PDF contábil: " + err.message);
+          alert("Erro ao gerar relatório contábil: " + err.message);
         }
       }
 
-      // EXPORTAR BACKUP EM JSON
       function exportarBackupJSON() {
         window.location.href = "/api/estoque/exportar-json";
       }
 
-      // RESTAURAR BACKUP EM JSON
       async function importarBackupJSON(event) {
         const file = event.target.files[0];
         if (!file) return;
-
         if (
           !confirm(
-            "ATENÇÃO: Restaurar um arquivo de backup substituirá todos os dados atuais do estoque! Deseja continuar?",
+            "ATENÇÃO: Restaurar um backup substituirá todos os dados atuais! Deseja continuar?",
           )
         ) {
           event.target.value = "";
           return;
         }
-
         const formData = new FormData();
         formData.append("arquivoBackup", file);
-
         try {
           const res = await fetch("/api/estoque/importar-json", {
             method: "POST",
             body: formData,
           });
-
           const json = await res.json();
           if (res.ok && json.success) {
             carregarDados();
             alert("Base de dados restaurada com sucesso!");
           } else {
-            alert("Erro ao restaurar: " + (json.error || "Arquivo inválido."));
+            alert("Erro: " + (json.error || "Arquivo inválido."));
           }
         } catch (err) {
-          alert("Erro na transmissão do arquivo: " + err.message);
+          alert("Erro: " + err.message);
         } finally {
           event.target.value = "";
         }
@@ -949,7 +1092,6 @@
           (c) => c.codigo.toUpperCase().trim() === codigo.toUpperCase().trim(),
         );
         if (!prod) return;
-
         document.getElementById("cad-codigo").value = prod.codigo;
         document.getElementById("cad-desc").value = prod.descricao;
         document.getElementById("cad-ncm").value = prod.ncm || "-";
@@ -957,7 +1099,6 @@
         document.getElementById("cad-und").value = prod.unidade;
         document.getElementById("cad-min").value = prod.minimo;
         document.getElementById("cad-custo").value = prod.custo;
-
         mudarAba("cadastros");
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
@@ -965,17 +1106,15 @@
       async function excluirProduto(codigo) {
         if (!confirm(`Tem certeza que deseja excluir o produto ${codigo}?`))
           return;
-
         const res = await fetch(`/api/estoque/excluir-produto/${codigo}`, {
           method: "DELETE",
         });
         const json = await res.json();
-
         if (res.ok && json.success) {
           carregarDados();
-          alert(`Produto ${codigo} excluído com sucesso!`);
+          alert(`Produto ${codigo} excluído!`);
         } else {
-          alert("Erro ao excluir: " + json.error);
+          alert("Erro: " + json.error);
         }
       }
 
@@ -1011,28 +1150,21 @@
           quantidadeFisica: document.getElementById("ajuste-qtd-fisica").value,
           motivo: document.getElementById("ajuste-motivo").value,
         };
-
         const res = await fetch("/api/estoque/ajustar", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
-
         const json = await res.json();
         if (res.ok && json.success) {
           fecharModalAjuste();
           carregarDados();
-          alert(
-            `Ajuste concluído com sucesso! Saldo alterado de ${json.saldoAnterior.toFixed(2)} para ${json.novoSaldo.toFixed(2)}.`,
-          );
+          alert(`Ajuste concluído! Novo saldo: ${json.novoSaldo.toFixed(2)}.`);
         } else {
-          alert(
-            "ERRO DE VALIDAÇÃO: " + (json.error || "Falha ao realizar ajuste."),
-          );
+          alert("ERRO: " + (json.error || "Falha ao ajustar."));
         }
       }
 
-      // FUNÇÃO DE FILTRO RÁPIDO AO CLICAR NO CARD "ITENS EM ALERTA"
       function filtrarItensAlerta() {
         mudarAba("painel");
         const selectStatus = document.getElementById("filtro-status-painel");
@@ -1040,6 +1172,14 @@
           selectStatus.value = "ALERTA";
           renderizar();
         }
+      }
+
+      function abrirModalAjuda() {
+        document.getElementById("modal-ajuda").classList.remove("hidden");
+      }
+
+      function fecharModalAjuda() {
+        document.getElementById("modal-ajuda").classList.add("hidden");
       }
     </script>
   </body>

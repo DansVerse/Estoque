@@ -35,19 +35,18 @@ function executarBackupDiario() {
       if (!fs.existsSync(caminhoBackup)) {
         fs.copyFileSync(BANCO_JSON, caminhoBackup);
         console.log(
-          `[BACKUP AUTOMÁTICO] Cópias de segurança criada com sucesso: ${nomeBackupDiario}`,
+          `[BACKUP AUTOMÁTICO] Cópia de segurança criada com sucesso: ${nomeBackupDiario}`,
         );
       }
     }
   } catch (err) {
     console.error(
-      "[BACKUP AUTOMÁTICO] Erro ao gerar cópias de segurança diária:",
+      "[BACKUP AUTOMÁTICO] Erro ao gerar cópia de segurança diária:",
       err,
     );
   }
 }
 
-// Executa o backup ao iniciar o servidor e agenda para repetir a cada 24h
 executarBackupDiario();
 setInterval(executarBackupDiario, 24 * 60 * 60 * 1000);
 
@@ -142,7 +141,7 @@ function chamarPython(script, payload) {
     pyProcess.on("close", () => {
       try {
         const linhas = outputData.trim().split("\n");
-        let jsonString = linhas[linhas.length - 1].trim();
+        const jsonString = linhas[linhas.length - 1].trim();
         resolve(JSON.parse(jsonString));
       } catch (e) {
         resolve({
@@ -153,8 +152,6 @@ function chamarPython(script, payload) {
     });
   });
 }
-
-// --- ROTAS DA API ---
 
 // 1. Obter estado completo
 app.get("/api/estoque/completo", (req, res) => {
@@ -237,9 +234,6 @@ app.post("/api/estoque/movimentar", (req, res) => {
 
     for (const bom of insumosBOM) {
       const codMP = bom.codigoMP.toUpperCase().trim();
-      const mpInfo = banco.cadastros.find(
-        (c) => c.codigo.toUpperCase().trim() === codMP,
-      );
       const mpMov = totaisAtuais[codMP] || { entradas: 0, saidas: 0 };
       const saldoMP = mpMov.entradas - mpMov.saidas;
       const qtdNecessaria = quantidade * Number(bom.qtdConsumida || 1);
@@ -501,7 +495,86 @@ app.post("/api/estoque/cadastrar-bom", (req, res) => {
   res.json({ success: true });
 });
 
-// 7. Backups em Excel
+// Apagar Registo da Estrutura BOM
+function removerItemBOM(banco, { id, codigoPA, codigoMP }) {
+  if (!Array.isArray(banco.estruturaBOM)) {
+    return {
+      ok: false,
+      status: 404,
+      error: "Item da estrutura BOM não encontrado.",
+    };
+  }
+
+  let idx = -1;
+  if (codigoPA && codigoMP) {
+    const paUpper = decodeURIComponent(String(codigoPA)).toUpperCase().trim();
+    const mpUpper = decodeURIComponent(String(codigoMP)).toUpperCase().trim();
+    idx = banco.estruturaBOM.findIndex(
+      (b) =>
+        (b.codigoPA || "").toUpperCase().trim() === paUpper &&
+        (b.codigoMP || "").toUpperCase().trim() === mpUpper,
+    );
+  }
+
+  if (idx === -1 && id !== undefined && id !== null && id !== "item") {
+    const numIdx = Number(id);
+    if (
+      !Number.isNaN(numIdx) &&
+      numIdx >= 0 &&
+      numIdx < banco.estruturaBOM.length
+    ) {
+      idx = numIdx;
+    }
+  }
+
+  if (idx === -1) {
+    return {
+      ok: false,
+      status: 404,
+      error: "Item da estrutura BOM não encontrado.",
+    };
+  }
+
+  const [removido] = banco.estruturaBOM.splice(idx, 1);
+  registrarLog(
+    banco,
+    "Estrutura BOM",
+    `Removido vínculo de ${removido.codigoMP} (${removido.materiaPrima}) do item ${removido.codigoPA}`,
+  );
+  salvarBanco(banco);
+  io.emit("atualizacao_estoque", { success: true });
+  return { ok: true, removido };
+}
+
+app.post("/api/estoque/remover-bom", (req, res) => {
+  const banco = lerBanco();
+  const { id, codigoPA, codigoMP } = req.body || {};
+  const resultado = removerItemBOM(banco, { id, codigoPA, codigoMP });
+  if (!resultado.ok) {
+    return res
+      .status(resultado.status)
+      .json({ success: false, error: resultado.error });
+  }
+  res.json({ success: true, removido: resultado.removido });
+});
+
+app.delete("/api/estoque/excluir-bom/:id", (req, res) => {
+  const banco = lerBanco();
+  const { codigoPA, codigoMP } = req.query || {};
+  const resultado = removerItemBOM(banco, {
+    id: req.params.id,
+    codigoPA,
+    codigoMP,
+  });
+  if (!resultado.ok) {
+    return res
+      .status(resultado.status)
+      .json({ success: false, error: resultado.error });
+  }
+  res.json({ success: true, removido: resultado.removido });
+});
+
+// 7. Backups em Excel e PDF Contábil
 app.post("/api/estoque/gerar-backup-excel", async (req, res) => {
   const banco = lerBanco();
   const resPython = await chamarPython("atualizar_excel.py", {
@@ -532,11 +605,12 @@ app.post("/api/estoque/gerar-relatorio-contador", async (req, res) => {
 
   res.status(500).json(resPython);
 });
+
 // 8. Exportar Backup da Base em JSON
 app.get("/api/estoque/exportar-json", (req, res) => {
   const banco = lerBanco();
   const dataFormatada = new Date().toISOString().slice(0, 10);
-  const nomeFicheiro = `Backup_Banco_Estoque_${dataFormatada}.json`;
+  const nomeFicheiro = `Backup_Banco_Estoque_AM_Facas_${dataFormatada}.json`;
 
   res.setHeader("Content-Type", "application/json");
   res.setHeader(
@@ -561,7 +635,6 @@ app.post(
       const conteudoRaw = fs.readFileSync(req.file.path, "utf-8");
       const novoBanco = JSON.parse(conteudoRaw);
 
-      // Validação da estrutura mínima do banco JSON
       if (!novoBanco.cadastros || !novoBanco.movimentacoes) {
         fs.unlinkSync(req.file.path);
         return res.status(400).json({
@@ -595,7 +668,7 @@ app.post(
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`====================================================`);
-  console.log(`🚀 SERVIDOR WEBSYSTEM ON EM http://localhost:${PORT}`);
-  console.log(`====================================================`);
+  console.log("====================================================");
+  console.log(`🚀 STOCKFLOW PRO - A M FACAS EM http://localhost:${PORT}`);
+  console.log("====================================================");
 });

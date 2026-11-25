@@ -50,9 +50,25 @@ function executarBackupDiario() {
 executarBackupDiario();
 setInterval(executarBackupDiario, 24 * 60 * 60 * 1000);
 
+const CONFIG_EMPRESA_PADRAO = {
+  nomeSistema: "StockFlow Pro",
+  razaoSocial: "",
+  nomeFantasia: "",
+  cnpj: "",
+  endereco: "",
+};
+
+function normalizarConfigEmpresa(cfg) {
+  return {
+    ...CONFIG_EMPRESA_PADRAO,
+    ...(cfg && typeof cfg === "object" ? cfg : {}),
+  };
+}
+
 function lerBanco() {
   if (!fs.existsSync(BANCO_JSON)) {
     const estruturaInicial = {
+      configEmpresa: { ...CONFIG_EMPRESA_PADRAO },
       cadastros: [],
       movimentacoes: [],
       estruturaBOM: [],
@@ -67,9 +83,12 @@ function lerBanco() {
   }
   try {
     const raw = fs.readFileSync(BANCO_JSON, "utf-8");
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    parsed.configEmpresa = normalizarConfigEmpresa(parsed.configEmpresa);
+    return parsed;
   } catch (e) {
     return {
+      configEmpresa: { ...CONFIG_EMPRESA_PADRAO },
       cadastros: [],
       movimentacoes: [],
       estruturaBOM: [],
@@ -176,6 +195,32 @@ app.get("/api/estoque/completo", (req, res) => {
   });
 
   res.json({ ...banco, painelEstoque });
+});
+
+// 1.1 Salvar Configurações da Empresa
+app.post("/api/estoque/salvar-empresa", (req, res) => {
+  const banco = lerBanco();
+  const { nomeSistema, razaoSocial, nomeFantasia, cnpj, endereco } =
+    req.body || {};
+
+  banco.configEmpresa = {
+    nomeSistema:
+      String(nomeSistema || "StockFlow Pro").trim() || "StockFlow Pro",
+    razaoSocial: String(razaoSocial || "").trim(),
+    nomeFantasia: String(nomeFantasia || "").trim(),
+    cnpj: String(cnpj || "").trim(),
+    endereco: String(endereco || "").trim(),
+  };
+
+  registrarLog(
+    banco,
+    "Configuração da Empresa",
+    `Dados da empresa atualizados (${banco.configEmpresa.nomeFantasia || banco.configEmpresa.razaoSocial || banco.configEmpresa.cnpj || "Sem identificação"}).`,
+  );
+
+  salvarBanco(banco);
+  io.emit("atualizacao_estoque", { success: true });
+  res.json({ success: true, configEmpresa: banco.configEmpresa });
 });
 
 // 2. Lançamento / Movimentação
@@ -609,8 +654,14 @@ app.post("/api/estoque/gerar-relatorio-contador", async (req, res) => {
 // 8. Exportar Backup da Base em JSON
 app.get("/api/estoque/exportar-json", (req, res) => {
   const banco = lerBanco();
+  const emp = normalizarConfigEmpresa(banco.configEmpresa);
+  const sufixoLimpo =
+    (emp.cnpj || emp.nomeFantasia || emp.razaoSocial || "Empresa").replace(
+      /[^a-zA-Z0-9]/g,
+      "",
+    ) || "Empresa";
   const dataFormatada = new Date().toISOString().slice(0, 10);
-  const nomeFicheiro = `Backup_Banco_Estoque_AM_Facas_${dataFormatada}.json`;
+  const nomeFicheiro = `Backup_Banco_Estoque_${sufixoLimpo}_${dataFormatada}.json`;
 
   res.setHeader("Content-Type", "application/json");
   res.setHeader(
@@ -669,6 +720,6 @@ app.post(
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log("====================================================");
-  console.log(`🚀 STOCKFLOW PRO - A M FACAS EM http://localhost:${PORT}`);
+  console.log(`🚀 STOCKFLOW PRO EM http://localhost:${PORT}`);
   console.log("====================================================");
 });

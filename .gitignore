@@ -13,3 +13,6 @@ uploads/
 *.tmp
 ~$*.xlsx
 ~$*.xlsm
+
+# Dados locais do estoque (configuração da empresa e movimentações)
+banco_estoque.json

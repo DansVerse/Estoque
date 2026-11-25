@@ -1,5 +1,5 @@
 @echo off
-title Servidor StockFlow Pro - RT Esquadrias
+title StockFlow Pro - Gestao de Estoque
 chcp 65001 > nul
 echo ====================================================
 echo CONFIGURANDO E INICIANDO STOCKFLOW PRO
@@ -59,10 +59,10 @@ if not exist "uploads" (
     mkdir uploads
 )
 
-rem 7. Configuração Automática do Arranque com o Windows (Startup) e Segundo Plano
+rem 7. Configuração Automática do Arranque com o Windows (Startup)
 set "PASTA_STARTUP=%appdata%\Microsoft\Windows\Start Menu\Programs\Startup"
 set "CAMINHO_VBS=%~dp0iniciar_invisivel.vbs"
-set "CAMINHO_ATALHO=%PASTA_STARTUP%\StockFlow_Pro_RT_Esquadrias.lnk"
+set "CAMINHO_ATALHO=%PASTA_STARTUP%\StockFlow_Pro.lnk"
 
 if not exist "%CAMINHO_ATALHO%" (
     echo Configurando inicializacao automatica com o Windows...

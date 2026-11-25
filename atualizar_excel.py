@@ -32,16 +32,49 @@ def aplicar_estilo_cabecalho(ws, linha, cabecalhos, azul_escuro="1F4E78"):
         cell.fill = fill_azul
         cell.alignment = Alignment(horizontal="center", vertical="center")
 
+def obter_dados_empresa(banco):
+    emp = banco.get('configEmpresa') or {}
+    razao = str(emp.get('razaoSocial') or '').strip()
+    fantasia = str(emp.get('nomeFantasia') or '').strip()
+    cnpj = str(emp.get('cnpj') or '').strip()
+    endereco = str(emp.get('endereco') or '').strip()
+
+    if razao and fantasia and razao.lower() != fantasia.lower():
+        nome_exibicao = f"{razao.upper()} ({fantasia.upper()})"
+    elif razao:
+        nome_exibicao = razao.upper()
+    elif fantasia:
+        nome_exibicao = fantasia.upper()
+    else:
+        nome_exibicao = "STOCKFLOW PRO"
+
+    partes_doc = [nome_exibicao]
+    if cnpj:
+        partes_doc.append(f"CNPJ: {cnpj}")
+    cabecalho_completo = " — ".join(partes_doc)
+
+    sufixo_limpo = "".join(ch for ch in (cnpj or fantasia or razao) if ch.isalnum())
+    if not sufixo_limpo:
+        sufixo_limpo = "Empresa"
+
+    return {
+        "nome_exibicao": nome_exibicao,
+        "cabecalho_completo": cabecalho_completo,
+        "cnpj": cnpj,
+        "endereco": endereco,
+        "sufixo_arquivo": sufixo_limpo
+    }
+
 def gerar_backup(banco):
     if os.path.exists(CAMINHO_MODELO):
         wb = openpyxl.load_workbook(CAMINHO_MODELO)
     else:
         wb = openpyxl.Workbook()
 
-    # 1. CADASTROS
+    dados_emp = obter_dados_empresa(banco)
     ws_cad = garantir_aba(wb, 'Cadastros')
+    ws_cad.cell(1, 1, f"{dados_emp['cabecalho_completo']} - CADASTRO DE PRODUTOS E INSUMOS").font = Font(name="Arial", size=12, bold=True, color="1F4E78")
     if ws_cad.max_row < 3 or ws_cad.cell(3, 1).value is None:
-        ws_cad.cell(1, 1, "BASE MODELO - CADASTRO DE PRODUTOS E INSUMOS").font = Font(name="Arial", size=12, bold=True, color="1F4E78")
         cabecalhos_cad = ["Código", "Descrição do Item", "NCM", "Categoria", "Unidade", "Est. Mínimo", "Custo Unitário (R$)"]
         aplicar_estilo_cabecalho(ws_cad, 3, cabecalhos_cad)
 
@@ -58,7 +91,6 @@ def gerar_backup(banco):
         ws_cad.cell(row=idx, column=6, value=float(item.get('minimo', 0)))
         ws_cad.cell(row=idx, column=7, value=float(item.get('custo', 0)))
 
-    # 2. MOVIMENTAÇÕES
     ws_mov = garantir_aba(wb, 'Movimentacoes')
     if ws_mov.max_row < 1 or ws_mov.cell(1, 1).value is None:
         cabecalhos_mov = ["Data", "Tipo", "Código", "Produto", "NCM", "Quantidade", "Observação", "Custo Unit. (R$)", "Valor Total (R$)"]
@@ -79,10 +111,9 @@ def gerar_backup(banco):
         ws_mov.cell(row=idx, column=8, value=float(mov.get('valorUnit', 0)))
         ws_mov.cell(row=idx, column=9, value=float(mov.get('valorTotal', 0)))
 
-    # 3. ESTRUTURA BOM
     ws_bom = garantir_aba(wb, 'Estrutura_BOM')
+    ws_bom.cell(1, 1, f"{dados_emp['cabecalho_completo']} - FICHA TÉCNICA DE PRODUÇÃO (BOM)").font = Font(name="Arial", size=12, bold=True, color="1F4E78")
     if ws_bom.max_row < 3 or ws_bom.cell(3, 1).value is None:
-        ws_bom.cell(1, 1, "BASE MODELO - FICHA TÉCNICA DE PRODUÇÃO (BOM)").font = Font(name="Arial", size=12, bold=True, color="1F4E78")
         cabecalhos_bom = ["Código PA", "Produto PA", "Código MP", "Matéria-Prima", "Qtd Consumida", "Unidade"]
         aplicar_estilo_cabecalho(ws_bom, 3, cabecalhos_bom)
 
@@ -104,7 +135,7 @@ def gerar_backup(banco):
             col_letter = get_column_letter(col[0].column)
             sheet.column_dimensions[col_letter].width = max(max_len + 3, 12)
 
-    nome_backup = f"Backup_Estoque_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    nome_backup = f"Backup_Estoque_{dados_emp['sufixo_arquivo']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
     caminho_saida = os.path.join(PASTA_ESTOQUES, nome_backup)
     wb.save(caminho_saida)
     wb.close()
@@ -112,10 +143,10 @@ def gerar_backup(banco):
     return {"success": True, "arquivo": nome_backup}
 
 def gerar_relatorio_pdf(banco):
-    nome_pdf = f"Relatorio_Contabil_Estoque_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    dados_emp = obter_dados_empresa(banco)
+    nome_pdf = f"Relatorio_Contabil_{dados_emp['sufixo_arquivo']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
     caminho_pdf = os.path.join(PASTA_ESTOQUES, nome_pdf)
 
-    # Configura documento em A4 Paisagem (Landscape)
     doc = SimpleDocTemplate(
         caminho_pdf,
         pagesize=landscape(A4),
@@ -126,16 +157,16 @@ def gerar_relatorio_pdf(banco):
     )
 
     styles = getSampleStyleSheet()
-    
+
     titulo_style = ParagraphStyle(
         'TituloContabil',
         parent=styles['Heading1'],
-        fontSize=16,
-        leading=20,
+        fontSize=14,
+        leading=18,
         textColor=colors.HexColor('#1F4E78'),
         fontName='Helvetica-Bold'
     )
-    
+
     sub_style = ParagraphStyle(
         'SubTituloContabil',
         parent=styles['Normal'],
@@ -182,13 +213,15 @@ def gerar_relatorio_pdf(banco):
 
     elements = []
 
-    # Cabeçalho do PDF
     data_geracao = datetime.now().strftime("%d/%m/%Y às %H:%M:%S")
-    elements.append(Paragraph("<b>RT ESQUADRIAS</b> — RELATÓRIO CONTÁBIL DE MOVIMENTAÇÃO DE ESTOQUE", titulo_style))
-    elements.append(Paragraph(f"Documento auxiliar contábil retido para conferência e balanço | Gerado em: {data_geracao}", sub_style))
+    titulo_empresa = f"<b>{dados_emp['nome_exibicao']}</b>"
+    if dados_emp['cnpj']:
+        titulo_empresa += f" — CNPJ: {dados_emp['cnpj']}"
+    elements.append(Paragraph(f"{titulo_empresa} | RELATÓRIO CONTÁBIL DE ESTOQUE", titulo_style))
+    subtitulo_texto = f"{dados_emp['endereco']} | Gerado em: {data_geracao}" if dados_emp['endereco'] else f"Gerado em: {data_geracao}"
+    elements.append(Paragraph(subtitulo_texto, sub_style))
     elements.append(Spacer(1, 12))
 
-    # Tabela Contábil
     headers = ["Data", "Tipo Operação", "Código", "Descrição do Produto", "NCM", "Qtd", "V. Unit. (R$)", "V. Total (R$)", "Observação / Ordem"]
     data_table = [[Paragraph(h, cell_header) for h in headers]]
 
@@ -213,7 +246,6 @@ def gerar_relatorio_pdf(banco):
         ]
         data_table.append(linha)
 
-    # Largura total disponível = 842pt - 40pt (margens) = 802pt
     col_widths = [55, 80, 55, 200, 55, 45, 60, 65, 187]
 
     tabela = Table(data_table, colWidths=col_widths, repeatRows=1)
@@ -230,7 +262,6 @@ def gerar_relatorio_pdf(banco):
     elements.append(tabela)
     elements.append(Spacer(1, 10))
 
-    # Resumo do Rodapé
     total_formatado = f"R$ {valor_total_movimentacoes:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     resumo_style = ParagraphStyle(
         'ResumoTotal',

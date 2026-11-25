@@ -68,7 +68,6 @@ function normalizarConfigEmpresa(cfg) {
 function lerBanco() {
   if (!fs.existsSync(BANCO_JSON)) {
     const estruturaInicial = {
-      configEmpresa: { ...CONFIG_EMPRESA_PADRAO },
       cadastros: [],
       movimentacoes: [],
       estruturaBOM: [],
@@ -88,7 +87,6 @@ function lerBanco() {
     return parsed;
   } catch (e) {
     return {
-      configEmpresa: { ...CONFIG_EMPRESA_PADRAO },
       cadastros: [],
       movimentacoes: [],
       estruturaBOM: [],
@@ -200,12 +198,10 @@ app.get("/api/estoque/completo", (req, res) => {
 // 1.1 Salvar Configurações da Empresa
 app.post("/api/estoque/salvar-empresa", (req, res) => {
   const banco = lerBanco();
-  const { nomeSistema, razaoSocial, nomeFantasia, cnpj, endereco } =
-    req.body || {};
+  const { nomeSistema, razaoSocial, nomeFantasia, cnpj, endereco } = req.body || {};
 
   banco.configEmpresa = {
-    nomeSistema:
-      String(nomeSistema || "StockFlow Pro").trim() || "StockFlow Pro",
+    nomeSistema: String(nomeSistema || "StockFlow Pro").trim() || "StockFlow Pro",
     razaoSocial: String(razaoSocial || "").trim(),
     nomeFantasia: String(nomeFantasia || "").trim(),
     cnpj: String(cnpj || "").trim(),
@@ -226,7 +222,7 @@ app.post("/api/estoque/salvar-empresa", (req, res) => {
 // 2. Lançamento / Movimentação
 app.post("/api/estoque/movimentar", (req, res) => {
   const banco = lerBanco();
-  const { tipo, codigo, qtd, obs } = req.body;
+  const { tipo, codigo, qtd, obs, custoUnitario } = req.body;
   const quantidade = Number(qtd);
 
   if (!codigo) {
@@ -292,6 +288,32 @@ app.post("/api/estoque/movimentar", (req, res) => {
     }
   }
 
+  const temCustoEspecifico =
+    custoUnitario !== undefined &&
+    custoUnitario !== null &&
+    String(custoUnitario).trim() !== "" &&
+    !Number.isNaN(Number(custoUnitario)) &&
+    Number(custoUnitario) >= 0;
+
+  const custoInformado = temCustoEspecifico
+    ? Number(custoUnitario)
+    : Number(produto.custo || 0);
+
+  // Custo Médio Ponderado automático nas Entradas quando um custo unitário específico é informado
+  let detalheCustoMedio = "";
+  if (isEntrada && temCustoEspecifico) {
+    const saldoBase = Math.max(0, saldoAtual);
+    const custoAnterior = Number(produto.custo || 0);
+    const novoSaldoTotal = saldoBase + quantidade;
+    if (novoSaldoTotal > 0) {
+      const novoCustoMedio =
+        (saldoBase * custoAnterior + quantidade * custoInformado) / novoSaldoTotal;
+      const custoMedioArredondado = Number(novoCustoMedio.toFixed(4));
+      produto.custo = custoMedioArredondado;
+      detalheCustoMedio = ` | Custo médio atualizado de R$ ${custoAnterior.toFixed(2)} para R$ ${custoMedioArredondado.toFixed(2)}`;
+    }
+  }
+
   const dataAtual = new Date().toLocaleDateString("pt-BR");
 
   banco.movimentacoes.push({
@@ -302,8 +324,8 @@ app.post("/api/estoque/movimentar", (req, res) => {
     ncm: produto.ncm || "-",
     qtd: quantidade,
     obs: obs || "Lançamento Web",
-    valorUnit: produto.custo,
-    valorTotal: quantidade * produto.custo,
+    valorUnit: custoInformado,
+    valorTotal: quantidade * custoInformado,
   });
 
   if (isEntrada && produto.codigo.startsWith("PA-")) {
@@ -333,12 +355,51 @@ app.post("/api/estoque/movimentar", (req, res) => {
   registrarLog(
     banco,
     "Movimentação Web",
-    `${tipo} de ${quantidade} no item ${produto.codigo}`,
+    `${tipo} de ${quantidade} no item ${produto.codigo} (Unit.: R$ ${custoInformado.toFixed(2)})${detalheCustoMedio}`,
   );
 
   salvarBanco(banco);
   io.emit("atualizacao_estoque", { success: true });
   res.json({ success: true });
+});
+
+// 3.1 Atualizar Custo de Referência do Produto
+app.post("/api/estoque/atualizar-custo-referencia", (req, res) => {
+  const banco = lerBanco();
+  const { codigo, novoCusto } = req.body || {};
+  const custoNum = Number(novoCusto);
+
+  if (!codigo || Number.isNaN(custoNum) || custoNum < 0) {
+    return res.status(400).json({
+      success: false,
+      error: "Informe um produto válido e um custo unitário maior ou igual a zero.",
+    });
+  }
+
+  const codUpper = String(codigo).toUpperCase().trim();
+  const idx = (banco.cadastros || []).findIndex(
+    (c) => (c.codigo || "").toUpperCase().trim() === codUpper,
+  );
+
+  if (idx === -1) {
+    return res.status(404).json({
+      success: false,
+      error: "Produto não encontrado no cadastro.",
+    });
+  }
+
+  const custoAnterior = Number(banco.cadastros[idx].custo || 0);
+  banco.cadastros[idx].custo = custoNum;
+
+  registrarLog(
+    banco,
+    "Custo de Referência",
+    `Custo de referência de ${banco.cadastros[idx].codigo} alterado de R$ ${custoAnterior.toFixed(2)} para R$ ${custoNum.toFixed(2)}.`,
+  );
+
+  salvarBanco(banco);
+  io.emit("atualizacao_estoque", { success: true });
+  res.json({ success: true, codigo: banco.cadastros[idx].codigo, novoCusto: custoNum });
 });
 
 // 3. Cadastrar / Editar Produto
@@ -543,11 +604,7 @@ app.post("/api/estoque/cadastrar-bom", (req, res) => {
 // Apagar Registo da Estrutura BOM
 function removerItemBOM(banco, { id, codigoPA, codigoMP }) {
   if (!Array.isArray(banco.estruturaBOM)) {
-    return {
-      ok: false,
-      status: 404,
-      error: "Item da estrutura BOM não encontrado.",
-    };
+    return { ok: false, status: 404, error: "Item da estrutura BOM não encontrado." };
   }
 
   let idx = -1;
@@ -563,21 +620,13 @@ function removerItemBOM(banco, { id, codigoPA, codigoMP }) {
 
   if (idx === -1 && id !== undefined && id !== null && id !== "item") {
     const numIdx = Number(id);
-    if (
-      !Number.isNaN(numIdx) &&
-      numIdx >= 0 &&
-      numIdx < banco.estruturaBOM.length
-    ) {
+    if (!Number.isNaN(numIdx) && numIdx >= 0 && numIdx < banco.estruturaBOM.length) {
       idx = numIdx;
     }
   }
 
   if (idx === -1) {
-    return {
-      ok: false,
-      status: 404,
-      error: "Item da estrutura BOM não encontrado.",
-    };
+    return { ok: false, status: 404, error: "Item da estrutura BOM não encontrado." };
   }
 
   const [removido] = banco.estruturaBOM.splice(idx, 1);
@@ -596,9 +645,7 @@ app.post("/api/estoque/remover-bom", (req, res) => {
   const { id, codigoPA, codigoMP } = req.body || {};
   const resultado = removerItemBOM(banco, { id, codigoPA, codigoMP });
   if (!resultado.ok) {
-    return res
-      .status(resultado.status)
-      .json({ success: false, error: resultado.error });
+    return res.status(resultado.status).json({ success: false, error: resultado.error });
   }
   res.json({ success: true, removido: resultado.removido });
 });
@@ -606,15 +653,9 @@ app.post("/api/estoque/remover-bom", (req, res) => {
 app.delete("/api/estoque/excluir-bom/:id", (req, res) => {
   const banco = lerBanco();
   const { codigoPA, codigoMP } = req.query || {};
-  const resultado = removerItemBOM(banco, {
-    id: req.params.id,
-    codigoPA,
-    codigoMP,
-  });
+  const resultado = removerItemBOM(banco, { id: req.params.id, codigoPA, codigoMP });
   if (!resultado.ok) {
-    return res
-      .status(resultado.status)
-      .json({ success: false, error: resultado.error });
+    return res.status(resultado.status).json({ success: false, error: resultado.error });
   }
   res.json({ success: true, removido: resultado.removido });
 });
@@ -655,11 +696,8 @@ app.post("/api/estoque/gerar-relatorio-contador", async (req, res) => {
 app.get("/api/estoque/exportar-json", (req, res) => {
   const banco = lerBanco();
   const emp = normalizarConfigEmpresa(banco.configEmpresa);
-  const sufixoLimpo =
-    (emp.cnpj || emp.nomeFantasia || emp.razaoSocial || "Empresa").replace(
-      /[^a-zA-Z0-9]/g,
-      "",
-    ) || "Empresa";
+  const sufixoLimpo = (emp.cnpj || emp.nomeFantasia || emp.razaoSocial || "Empresa")
+    .replace(/[^a-zA-Z0-9]/g, "") || "Empresa";
   const dataFormatada = new Date().toISOString().slice(0, 10);
   const nomeFicheiro = `Backup_Banco_Estoque_${sufixoLimpo}_${dataFormatada}.json`;
 

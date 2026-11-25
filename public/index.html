@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>StockFlow Pro - A M Facas (CNPJ: 01.216.475/0001-82)</title>
+    <title>StockFlow Pro - Gestão de Estoque</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link
       rel="stylesheet"
@@ -24,12 +24,13 @@
         class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center flex-wrap gap-3"
       >
         <div class="flex items-center gap-3">
-          <i class="fa-solid fa-vest text-amber-400 text-2xl"></i>
+          <i class="fa-solid fa-boxes-stacked text-amber-400 text-2xl"></i>
           <h1 class="text-xl font-bold">
-            StockFlow Pro
-            <span class="text-xs font-normal text-slate-400 block sm:inline"
-              >| A M Facas (Ailton de A. Maia) — CNPJ: 01.216.475/0001-82</span
-            >
+            <span id="header-nome-sistema">StockFlow Pro</span>
+            <span
+              id="header-info-empresa"
+              class="text-xs font-normal text-slate-400 block sm:inline"
+            ></span>
           </h1>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
@@ -64,6 +65,16 @@
             <span>Restaurar JSON</span>
           </button>
           <button
+            type="button"
+            onclick="abrirModalEmpresa()"
+            class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-3 py-2 rounded-lg text-sm shadow transition flex items-center gap-2"
+            title="Configurar dados da empresa (Nome, CNPJ e Endereço)"
+          >
+            <i class="fa-solid fa-building"></i>
+            <span>Empresa</span>
+          </button>
+          <button
+            type="button"
             onclick="abrirModalAjuda()"
             class="bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold w-10 h-10 rounded-lg text-sm shadow transition flex items-center justify-center border border-slate-700"
             title="Ajuda e Manual do Usuário"
@@ -236,7 +247,7 @@
               type="text"
               id="mov-obs"
               class="w-full bg-slate-50 border p-2 rounded-lg text-sm"
-              placeholder="Ex: Fabricação lote facas cutelaria"
+              placeholder="Ex: Ordem de produção / Lote 01"
             />
           </div>
           <div class="flex items-end">
@@ -438,7 +449,7 @@
         class="hidden bg-white p-6 rounded-xl shadow-sm border border-slate-200"
       >
         <h2 class="text-lg font-bold mb-4 text-purple-700">
-          Receita de Fabricação / Cutelaria (BOM)
+          Receita de Fabricação (BOM)
         </h2>
         <form
           onsubmit="salvarBOM(event)"
@@ -618,6 +629,94 @@
       </div>
     </div>
 
+    <!-- Modal de Configuração da Empresa -->
+    <div
+      id="modal-empresa"
+      class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    >
+      <div class="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 space-y-4">
+        <div class="flex justify-between items-center border-b pb-3">
+          <h3 class="text-lg font-bold text-indigo-700 flex items-center gap-2">
+            <i class="fa-solid fa-building"></i> Cadastro / Identificação da
+            Empresa
+          </h3>
+          <button
+            type="button"
+            onclick="fecharModalEmpresa()"
+            class="text-slate-400 hover:text-slate-600"
+          >
+            <i class="fa-solid fa-xmark text-xl"></i>
+          </button>
+        </div>
+        <p class="text-xs text-slate-500">
+          As informações preenchidas abaixo atualizam automaticamente o
+          cabeçalho do sistema, o Relatório Contábil em PDF e os backups em
+          Excel/JSON.
+        </p>
+        <form onsubmit="salvarEmpresa(event)" class="space-y-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1"
+              >Nome Fantasia</label
+            >
+            <input
+              type="text"
+              id="emp-fantasia"
+              class="w-full bg-slate-50 border p-2 rounded-lg text-sm"
+              placeholder="Ex: Metalúrgica Exemplo"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1"
+              >Razão Social</label
+            >
+            <input
+              type="text"
+              id="emp-razao"
+              class="w-full bg-slate-50 border p-2 rounded-lg text-sm"
+              placeholder="Ex: Exemplo Indústria e Comércio LTDA"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1"
+              >CNPJ</label
+            >
+            <input
+              type="text"
+              id="emp-cnpj"
+              class="w-full bg-slate-50 border p-2 rounded-lg text-sm"
+              placeholder="00.000.000/0001-00"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1"
+              >Endereço Completo (exibido no PDF Contábil)</label
+            >
+            <input
+              type="text"
+              id="emp-endereco"
+              class="w-full bg-slate-50 border p-2 rounded-lg text-sm"
+              placeholder="Rua Exemplo, 100 — Bairro, Cidade/UF"
+            />
+          </div>
+          <div class="flex gap-2 pt-2">
+            <button
+              type="button"
+              onclick="fecharModalEmpresa()"
+              class="w-1/2 bg-slate-200 text-slate-700 font-bold py-2 rounded-lg text-sm"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="w-1/2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-lg text-sm"
+            >
+              Salvar Dados da Empresa
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- Modal de Ajuda / Manual do Usuário -->
     <div
       id="modal-ajuda"
@@ -706,12 +805,59 @@
 
     <script>
       let estadoGlobal = {
+        configEmpresa: {
+          nomeSistema: "StockFlow Pro",
+          razaoSocial: "",
+          nomeFantasia: "",
+          cnpj: "",
+          endereco: "",
+        },
         cadastros: [],
         movimentacoes: [],
         painelEstoque: [],
         estruturaBOM: [],
         logAuditoria: [],
       };
+
+      function obterSufixoArquivoEmpresa() {
+        const emp = estadoGlobal.configEmpresa || {};
+        const base =
+          emp.cnpj || emp.nomeFantasia || emp.razaoSocial || "Empresa";
+        return String(base).replace(/[^a-zA-Z0-9]/g, "") || "Empresa";
+      }
+
+      function atualizarCabecalhoEmpresa() {
+        const emp = estadoGlobal.configEmpresa || {};
+        const nomeSis = emp.nomeSistema || "StockFlow Pro";
+        const fantasia = (emp.nomeFantasia || "").trim();
+        const razao = (emp.razaoSocial || "").trim();
+        const cnpj = (emp.cnpj || "").trim();
+
+        let nomeExibicao = "";
+        if (
+          fantasia &&
+          razao &&
+          fantasia.toLowerCase() !== razao.toLowerCase()
+        ) {
+          nomeExibicao = `${fantasia} (${razao})`;
+        } else {
+          nomeExibicao = fantasia || razao;
+        }
+
+        const partes = [];
+        if (nomeExibicao) partes.push(nomeExibicao);
+        if (cnpj) partes.push(`CNPJ: ${cnpj}`);
+
+        const resumo = partes.join(" — ");
+        const elSistema = document.getElementById("header-nome-sistema");
+        const elInfo = document.getElementById("header-info-empresa");
+        if (elSistema) elSistema.innerText = nomeSis;
+        if (elInfo)
+          elInfo.innerText = resumo
+            ? `| ${resumo}`
+            : "| Configure os dados da empresa";
+        document.title = resumo ? `${nomeSis} — ${resumo}` : nomeSis;
+      }
       const socket = typeof io !== "undefined" ? io() : null;
 
       document.addEventListener("DOMContentLoaded", () => {
@@ -726,6 +872,7 @@
       }
 
       function renderizar() {
+        atualizarCabecalhoEmpresa();
         const selMov = document.getElementById("mov-codigo");
         const selPA = document.getElementById("bom-pa");
         const selMP = document.getElementById("bom-mp");
@@ -818,7 +965,7 @@
                 <td class="p-2">R$ ${Number(c.custo).toFixed(2)}</td>
                 <td class="p-2 text-center flex justify-center gap-2">
                   <button onclick="preencherEdicao('${c.codigo}')" class="bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded text-xs flex items-center gap-1"><i class="fa-solid fa-pen"></i> Editar</button>
-                  <button onclick="excluirProduto('${c.codigo}')" class="bg-rose-600 hover:bg-rose-700 text-white px-2 py-1 rounded text-xs flex items-center gap-1"><i class="fa-solid fa-trash"></i> Excluir</button>
+                  <button type="button" onclick="excluirProduto('${c.codigo}')" class="bg-rose-600 hover:bg-rose-700 text-white px-2 py-1 rounded text-xs flex items-center gap-1"><i class="fa-solid fa-trash"></i> Excluir</button>
                 </td>
               </tr>`;
           });
@@ -981,12 +1128,25 @@
           index = btnOrIndex;
         }
         try {
-          const res = await fetch("/api/estoque/remover-bom", {
+          let res = await fetch("/api/estoque/remover-bom", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ id: index, codigoPA: pa, codigoMP: mp }),
           });
-          const json = await res.json();
+          if (res.status === 404 && index !== null) {
+            res = await fetch(`/api/estoque/excluir-bom/${index}`, {
+              method: "DELETE",
+            });
+          }
+          const texto = await res.text();
+          let json = {};
+          try {
+            json = JSON.parse(texto);
+          } catch {
+            throw new Error(
+              "Resposta inválida do servidor. Reinicie o servidor Node.",
+            );
+          }
           if (res.ok && json.success) {
             await carregarDados();
             alert("Insumo removido da receita com sucesso!");
@@ -1008,7 +1168,7 @@
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          a.download = `Backup_Estoque_AM_Facas_${new Date().toISOString().slice(0, 10)}.xlsx`;
+          a.download = `Backup_Estoque_${obterSufixoArquivoEmpresa()}_${new Date().toISOString().slice(0, 10)}.xlsx`;
           document.body.appendChild(a);
           a.click();
           a.remove();
@@ -1028,7 +1188,7 @@
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          a.download = `Relatorio_Contabil_AM_Facas_${new Date().toISOString().slice(0, 10)}.pdf`;
+          a.download = `Relatorio_Contabil_${obterSufixoArquivoEmpresa()}_${new Date().toISOString().slice(0, 10)}.pdf`;
           document.body.appendChild(a);
           a.click();
           a.remove();
@@ -1104,17 +1264,27 @@
       }
 
       async function excluirProduto(codigo) {
-        if (!confirm(`Tem certeza que deseja excluir o produto ${codigo}?`))
+        if (!confirm(`Tem certeza que deseja excluir o produto ${codigo}?`)) {
           return;
-        const res = await fetch(`/api/estoque/excluir-produto/${codigo}`, {
-          method: "DELETE",
-        });
-        const json = await res.json();
-        if (res.ok && json.success) {
-          carregarDados();
-          alert(`Produto ${codigo} excluído!`);
-        } else {
-          alert("Erro: " + json.error);
+        }
+        try {
+          const res = await fetch(
+            `/api/estoque/excluir-produto/${encodeURIComponent(codigo)}`,
+            {
+              method: "DELETE",
+            },
+          );
+          const json = await res.json();
+          if (res.ok && json.success) {
+            await carregarDados();
+            alert(`Produto ${codigo} excluído!`);
+          } else {
+            alert(
+              "Erro: " + (json.error || "Não foi possível excluir o produto."),
+            );
+          }
+        } catch (err) {
+          alert("Erro de comunicação ao excluir produto: " + err.message);
         }
       }
 
@@ -1180,6 +1350,49 @@
 
       function fecharModalAjuda() {
         document.getElementById("modal-ajuda").classList.add("hidden");
+      }
+
+      function abrirModalEmpresa() {
+        const emp = estadoGlobal.configEmpresa || {};
+        document.getElementById("emp-fantasia").value = emp.nomeFantasia || "";
+        document.getElementById("emp-razao").value = emp.razaoSocial || "";
+        document.getElementById("emp-cnpj").value = emp.cnpj || "";
+        document.getElementById("emp-endereco").value = emp.endereco || "";
+        document.getElementById("modal-empresa").classList.remove("hidden");
+      }
+
+      function fecharModalEmpresa() {
+        document.getElementById("modal-empresa").classList.add("hidden");
+      }
+
+      async function salvarEmpresa(e) {
+        e.preventDefault();
+        const body = {
+          nomeSistema: "StockFlow Pro",
+          nomeFantasia: document.getElementById("emp-fantasia").value,
+          razaoSocial: document.getElementById("emp-razao").value,
+          cnpj: document.getElementById("emp-cnpj").value,
+          endereco: document.getElementById("emp-endereco").value,
+        };
+        try {
+          const res = await fetch("/api/estoque/salvar-empresa", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          const json = await res.json();
+          if (res.ok && json.success) {
+            fecharModalEmpresa();
+            await carregarDados();
+            alert("Dados da empresa atualizados com sucesso!");
+          } else {
+            alert(
+              "Erro: " + (json.error || "Falha ao salvar dados da empresa."),
+            );
+          }
+        } catch (err) {
+          alert("Erro de comunicação ao salvar empresa: " + err.message);
+        }
       }
     </script>
   </body>
